@@ -142,8 +142,8 @@ export async function calculateRabotPrice(data: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            postCode: data.postCode,
-            yearlyConsumption: data.yearlyConsumption,
+            ZipCode: data.postCode,
+            yearlyConsumptionKwh: data.yearlyConsumption,
             hasSmartMeter: data.hasSmartMeter || false,
             hasElectricVehicle: data.hasElectricVehicle || false
         })
