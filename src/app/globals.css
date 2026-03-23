@@ -1,26 +1,170 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-primary: #202324;
+  --color-primary-hover: #33383a;
+  --color-accent: #e8ac15;
+  --color-accent-hover: #cf9811;
+  --color-accent-light: #fef0cd;
+  --color-background: #f2f2f2;
+  --color-foreground: #202324;
+  --color-muted: #e0e0e0;
+  --color-muted-foreground: #666666;
+  --color-surface: #ffffff;
+
+  --font-sans: "Poppins", var(--font-poppins);
+
+  --shadow-premium: 4px 4px 0px 0px rgba(32, 35, 36, 0.1);
+  --shadow-glow: 4px 4px 0px 0px rgba(232, 172, 21, 0.2);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+  max-width: 1200px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@media (min-width: 48rem) {
+  .md\:text-\[4rem\] {
+    font-size: 3.5rem !important;
   }
 }
 
+@utility glass {
+  background: rgba(242, 242, 242, 0.95);
+  border-bottom: 1px solid rgba(32, 35, 36, 0.1);
+}
+
+@utility glass-card {
+  background: #ffffff;
+  border: 1px solid #202324;
+  box-shadow: 4px 4px 0px 0px rgba(32, 35, 36, 1);
+}
+
+@utility text-gradient {
+  color: var(--color-primary);
+}
+
+@utility text-gradient-accent {
+  color: var(--color-accent);
+}
+
+@utility bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(32, 35, 36, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(32, 35, 36, 0.05) 1px, transparent 1px);
+}
+
+:root {
+  --background: #f2f2f2;
+  --foreground: #202324;
+}
+
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes pulse-soft {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes float-x {
+
+  0%,
+  100% {
+    transform: translateX(-20px);
+  }
+
+  50% {
+    transform: translateX(20px);
+  }
+}
+
+.animate-float-x {
+  animation: float-x 8s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-400 {
+  animation-delay: 400ms;
 }

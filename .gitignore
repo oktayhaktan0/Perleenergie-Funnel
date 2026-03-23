@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Hostinger / Deployment artifacts
+hostinger_deploy/
+*.zip
+deploy_package/
