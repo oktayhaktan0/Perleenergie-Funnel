@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
@@ -12,7 +13,6 @@ const nextConfig = {
       },
     ],
   },
-  // We'll keep it simple for now to ensure stability on Hostinger
 };
 
 export default nextConfig;

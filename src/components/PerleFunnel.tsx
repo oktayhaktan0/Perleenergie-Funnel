@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { ArrowRight, ArrowLeft, Check, Zap, Shield, CreditCard, User, Home, Activity, Smartphone, Car, Flame, Sun, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 
