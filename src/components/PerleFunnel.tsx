@@ -342,6 +342,7 @@ export default function PerleFunnel() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            {tariffs.map(t => (
                                <button 
+                                type="button"
                                 key={t.tariffKey}
                                 onClick={() => {
                                     calculatePrice(t);
