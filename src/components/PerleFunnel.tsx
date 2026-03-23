@@ -180,6 +180,7 @@ export default function PerleFunnel() {
                         accountHolder: formData.accountHolder,
                         iban: formData.iban,
                         bic: formData.bic,
+                        bankName: null,
                         hasAcceptedDirectDebit: true
                     },
                     contractReason: formData.contractReason,
