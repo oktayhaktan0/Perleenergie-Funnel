@@ -8,6 +8,7 @@ import GoogleTagManager, { GTM_ID } from "@/components/GoogleTagManager";
 import CookieConsent from "@/components/CookieConsent";
 import MobileCallButton from "@/components/MobileCallButton";
 import NextTopLoader from "nextjs-toploader";
+import ClientErrorHandler from "@/components/ClientErrorHandler";
 
 const poppins = Poppins({ subsets: ["latin"], weight: ["300", "400", "700"], variable: "--font-poppins" });
 
@@ -87,6 +88,7 @@ export default function RootLayout({
             style={{ display: 'none', visibility: 'hidden' }}
           />
         </noscript>
+        <ClientErrorHandler />
         <NextTopLoader color="#e8ac15" />
         <GoogleTagManager />
         <GoogleAnalytics />

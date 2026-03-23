@@ -41,6 +41,7 @@ export default function PerleFunnel() {
     const [showTariffDetail, setShowTariffDetail] = useState(false);
     const [householdSize, setHouseholdSize] = useState(2);
     const [customerType, setCustomerType] = useState<"Private" | "Business">("Private");
+    const [showPersonalFields, setShowPersonalFields] = useState(false);
 
     // Form data
     const [formData, setFormData] = useState({
@@ -553,104 +554,203 @@ export default function PerleFunnel() {
 
                 {/* ==================== STEP 2: ÜBER DICH ==================== */}
                 {step === 2 && (
-                    <form onSubmit={(e) => { e.preventDefault(); nextStep(); }} className="space-y-10 animate-fade-in">
-                        <div className="space-y-4">
+                    <div className="space-y-10 animate-fade-in">
+                        {/* Trust Badges */}
+                        <div className="flex flex-wrap justify-center gap-4 md:gap-8 pb-4">
+                            {[
+                                { label: "Ausfüllen in wenigen Minuten", icon: <Check size={14} /> },
+                                { label: "Geprüfte Datensicherheit", icon: <Shield size={14} /> },
+                                { label: "Kompetenter Support", icon: <Check size={14} /> }
+                            ].map((badge, i) => (
+                                <div key={i} className="flex items-center gap-2 px-4 py-2 bg-[#f2f2f2] rounded-lg border border-[#202324]/5">
+                                    <div className="text-green-500">{badge.icon}</div>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#202324]/60">{badge.label}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="space-y-4 text-center">
                             <h3 className="text-3xl font-black tracking-tight text-[#202324]">Über <span className="text-[#e8ac15]">dich.</span></h3>
-                            <p className="text-lg text-[#202324]/50 font-medium">Lass uns wissen, wer du bist.</p>
                         </div>
 
-                        {/* Email */}
-                        <div className="space-y-3">
-                            <label className={labelClass}>Deine E-Mail Adresse</label>
-                            <input required name="email" value={formData.email} onChange={handleChange} type="email" placeholder="mail@beispiel.de" className={inputClass} />
-                        </div>
+                        {!showPersonalFields ? (
+                            <form onSubmit={(e) => { e.preventDefault(); if(formData.email) setShowPersonalFields(true); }} className="space-y-8">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-8 h-8 bg-[#202324] rounded-lg flex items-center justify-center text-white">
+                                            <User size={16} />
+                                        </div>
+                                        <h4 className="font-bold text-[#202324]">Deine E-Mail Adresse</h4>
+                                    </div>
+                                    <div className="bg-[#f2f2f2] rounded-2xl p-6 md:p-8 space-y-6">
+                                        <div className="space-y-3">
+                                            <label className={labelClass}>E-Mail</label>
+                                            <input 
+                                                required 
+                                                name="email" 
+                                                value={formData.email} 
+                                                onChange={handleChange} 
+                                                type="email" 
+                                                placeholder="mail@beispiel.de" 
+                                                className={inputClass} 
+                                            />
+                                            <p className="text-[#e8ac15] text-[10px] font-bold cursor-help hover:underline">Wofür brauchen wir diese Info?</p>
+                                        </div>
+                                    </div>
+                                </div>
 
-                        {/* Privat / Gewerbe Toggle */}
-                        <div className="space-y-3">
-                            <label className={labelClass}>Persönliche Daten</label>
-                            <div className="flex rounded-xl overflow-hidden border-2 border-[#202324]/5 w-fit">
-                                <button type="button" onClick={() => setCustomerType("Private")} className={`px-8 py-3 font-bold text-sm transition-all ${customerType === "Private" ? 'bg-[#e8ac15] text-[#202324]' : 'bg-white text-[#202324]/40 hover:bg-slate-50'}`}>
-                                    Privat
-                                </button>
-                                <button type="button" onClick={() => setCustomerType("Business")} className={`px-8 py-3 font-bold text-sm transition-all ${customerType === "Business" ? 'bg-[#e8ac15] text-[#202324]' : 'bg-white text-[#202324]/40 hover:bg-slate-50'}`}>
-                                    Gewerbe
-                                </button>
-                            </div>
-                        </div>
+                                <p className="text-xs text-[#202324]/40 font-medium leading-relaxed">
+                                    Mit klicken auf "Weiter" bestätigst du, dass Du unsere <Link href="/datenschutz" className="text-green-500 font-bold hover:underline">Datenschutzbestimmungen</Link> zur Kenntnis genommen hast. Wir schicken dir eine Bestätigungsmail. Bitte überprüfe Dein E-Mail-Postfach und Deinen Spam Ordner und klicke auf den Link um Deine E-Mail Adresse zu verifizieren.
+                                </p>
 
-                        {customerType === "Business" && (
-                            <div className="space-y-3">
-                                <label className={labelClass}>Firmenname</label>
-                                <input required name="businessName" value={formData.businessName} onChange={handleChange} type="text" className={inputClass} />
-                            </div>
+                                <div className="flex items-center justify-center pt-6">
+                                    <button 
+                                        type="submit" 
+                                        className="w-full md:w-auto min-w-[300px] flex items-center justify-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl bg-[#e8ac15] text-[#202324] hover:bg-[#202324] hover:text-white"
+                                    >
+                                        Weiter
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <form onSubmit={(e) => { e.preventDefault(); nextStep(); }} className="space-y-10">
+                                {/* Email Static with Change button */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-8 h-8 bg-[#202324] rounded-lg flex items-center justify-center text-white">
+                                            <User size={16} />
+                                        </div>
+                                        <h4 className="font-bold text-[#202324]">Deine E-Mail Adresse</h4>
+                                    </div>
+                                    <div className="bg-[#f2f2f2] rounded-2xl p-6 md:p-8 flex items-center justify-between border-l-4 border-[#e8ac15]">
+                                        <div>
+                                            <label className={labelClass}>E-Mail</label>
+                                            <p className="font-bold text-[#202324]">{formData.email}</p>
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowPersonalFields(false)}
+                                            className="px-6 py-3 bg-[#e8ac15] text-[#202324] rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#202324] hover:text-white transition-all shadow-sm"
+                                        >
+                                            Ändern
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Personal Data Fields */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-8 h-8 bg-transparent border border-[#202324]/10 rounded-lg flex items-center justify-center text-[#202324]/40">
+                                            <User size={16} />
+                                        </div>
+                                        <h4 className="font-bold text-[#202324]">Persönliche Daten</h4>
+                                    </div>
+
+                                    <div className="bg-[#f2f2f2] rounded-2xl p-6 md:p-8 space-y-8">
+                                        {/* Toggle */}
+                                        <div className="flex rounded-xl overflow-hidden border border-[#202324]/5 w-fit">
+                                            <button type="button" onClick={() => setCustomerType("Private")} className={`px-8 py-3 font-bold text-sm transition-all ${customerType === "Private" ? 'bg-[#e8ac15] text-[#202324]' : 'bg-white text-[#202324]/40 hover:bg-slate-50'}`}>
+                                                Privat
+                                            </button>
+                                            <button type="button" onClick={() => setCustomerType("Business")} className={`px-8 py-3 font-bold text-sm transition-all ${customerType === "Business" ? 'bg-[#e8ac15] text-[#202324]' : 'bg-white text-[#202324]/40 hover:bg-slate-50'}`}>
+                                                Gewerbe
+                                            </button>
+                                        </div>
+
+                                        {customerType === "Business" && (
+                                            <div className="space-y-3 animate-fade-in">
+                                                <label className={labelClass}>Firmenname</label>
+                                                <input required name="businessName" value={formData.businessName} onChange={handleChange} type="text" className={inputClass} />
+                                            </div>
+                                        )}
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-3">
+                                                <label className={labelClass}>Anrede</label>
+                                                <select name="gender" value={formData.gender} onChange={handleChange} className={inputClass}>
+                                                    <option value="Female">Frau</option>
+                                                    <option value="Male">Herr</option>
+                                                    <option value="Other">Divers</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className={labelClass}>Telefonnummer</label>
+                                                <input name="phone" value={formData.phone} onChange={handleChange} type="tel" placeholder="+49..." className={inputClass} />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className={labelClass}>Vorname</label>
+                                                <input required name="firstName" value={formData.firstName} onChange={handleChange} type="text" className={inputClass} />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className={labelClass}>Nachname</label>
+                                                <input required name="lastName" value={formData.lastName} onChange={handleChange} type="text" className={inputClass} />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className={labelClass}>Geburtsdatum</label>
+                                                <input required name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} type="date" className={inputClass} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Address */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-8 h-8 bg-transparent border border-[#202324]/10 rounded-lg flex items-center justify-center text-[#202324]/40">
+                                            <Home size={16} />
+                                        </div>
+                                        <h4 className="font-bold text-[#202324]">Deine Lieferadresse</h4>
+                                    </div>
+                                    <div className="bg-[#f2f2f2] rounded-2xl p-6 md:p-8">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="md:col-span-2 grid grid-cols-3 gap-6">
+                                                <div className="col-span-2 space-y-3">
+                                                    <label className={labelClass}>Straße</label>
+                                                    <input required name="street" value={formData.street} onChange={handleChange} type="text" className={inputClass} />
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <label className={labelClass}>Hausnr.</label>
+                                                    <input required name="houseNumber" value={formData.houseNumber} onChange={handleChange} type="text" className={inputClass} />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className={labelClass}>PLZ</label>
+                                                <input required name="postcode" value={formData.postcode} disabled type="text" className={`${inputClass} opacity-50 cursor-not-allowed`} />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className={labelClass}>Stadt</label>
+                                                <input required name="city" value={formData.city} onChange={handleChange} type="text" className={inputClass} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Password */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-8 h-8 bg-transparent border border-[#202324]/10 rounded-lg flex items-center justify-center text-[#202324]/40">
+                                            <Shield size={16} />
+                                        </div>
+                                        <h4 className="font-bold text-[#202324]">Dein Passwort</h4>
+                                    </div>
+                                    <div className="bg-[#f2f2f2] rounded-2xl p-6 md:p-8 space-y-3">
+                                        <label className={labelClass}>Passwort festlegen</label>
+                                        <input required name="password" value={formData.password} onChange={handleChange} type="password" placeholder="********" className={inputClass} />
+                                        <p className="text-[10px] text-[#202324]/30 font-bold uppercase tracking-widest">Mind. 8 Zeichen, eine Zahl, ein Groß- und ein Kleinbuchstabe.</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-4">
+                                    <button type="button" onClick={() => setStep(1)} className="flex items-center gap-2 text-[#202324]/40 hover:text-[#202324] font-bold transition-colors group">
+                                        <ArrowLeft size={20} className="transform group-hover:-translate-x-1 transition-transform" /> Zurück
+                                    </button>
+                                    <button type="submit" disabled={loading} className="flex items-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl bg-[#202324] text-white hover:bg-[#e8ac15] hover:text-[#202324]">
+                                        Weiter <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                </div>
+                            </form>
                         )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                                <label className={labelClass}>Anrede</label>
-                                <select name="gender" value={formData.gender} onChange={handleChange} className={inputClass}>
-                                    <option value="Female">Frau</option>
-                                    <option value="Male">Herr</option>
-                                    <option value="Other">Divers</option>
-                                </select>
-                            </div>
-                            <div className="space-y-3">
-                                <label className={labelClass}>Vorname</label>
-                                <input required name="firstName" value={formData.firstName} onChange={handleChange} type="text" className={inputClass} />
-                            </div>
-                            <div className="space-y-3">
-                                <label className={labelClass}>Nachname</label>
-                                <input required name="lastName" value={formData.lastName} onChange={handleChange} type="text" className={inputClass} />
-                            </div>
-                            <div className="space-y-3">
-                                <label className={labelClass}>Geburtsdatum</label>
-                                <input required name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} type="date" className={inputClass} />
-                            </div>
-                            <div className="space-y-3">
-                                <label className={labelClass}>Telefonnummer</label>
-                                <input name="phone" value={formData.phone} onChange={handleChange} type="tel" placeholder="+49..." className={inputClass} />
-                            </div>
-                        </div>
-
-                        {/* Delivery Address */}
-                        <div className="space-y-4 pt-4">
-                            <label className={labelClass}>Deine Lieferadresse</label>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-3">
-                                    <label className={labelClass}>Straße</label>
-                                    <input required name="street" value={formData.street} onChange={handleChange} type="text" className={inputClass} />
-                                </div>
-                                <div className="space-y-3">
-                                    <label className={labelClass}>Hausnummer</label>
-                                    <input required name="houseNumber" value={formData.houseNumber} onChange={handleChange} type="text" className={inputClass} />
-                                </div>
-                                <div className="space-y-3">
-                                    <label className={labelClass}>PLZ</label>
-                                    <input required name="postcode" value={formData.postcode} disabled type="text" className={`${inputClass} opacity-50 cursor-not-allowed`} />
-                                </div>
-                                <div className="space-y-3">
-                                    <label className={labelClass}>Stadt</label>
-                                    <input required name="city" value={formData.city} onChange={handleChange} type="text" className={inputClass} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Password */}
-                        <div className="space-y-3">
-                            <label className={labelClass}>Dein Passwort</label>
-                            <input required name="password" value={formData.password} onChange={handleChange} type="password" placeholder="Mindestens 8 Zeichen, Groß-/Kleinbuchstaben, Zahl" className={inputClass} />
-                            <p className="text-xs text-[#202324]/30 font-medium">Mind. 8 Zeichen, eine Zahl, ein Groß- und ein Kleinbuchstabe.</p>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-4">
-                            <button type="button" onClick={() => setStep(1)} className="flex items-center gap-2 text-[#202324]/40 hover:text-[#202324] font-bold transition-colors group">
-                                <ArrowLeft size={20} className="transform group-hover:-translate-x-1 transition-transform" /> Zurück
-                            </button>
-                            <button type="submit" disabled={loading} className="flex items-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl group bg-[#202324] text-white hover:bg-[#e8ac15] hover:text-[#202324]">
-                                Weiter <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 )}
 
                 {/* ==================== STEP 3: WECHSELDETAILS ==================== */}
