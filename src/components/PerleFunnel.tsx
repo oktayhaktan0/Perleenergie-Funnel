@@ -768,16 +768,30 @@ export default function PerleFunnel() {
                                             <div className="md:col-span-2 grid grid-cols-3 gap-6">
                                                 <div className="col-span-2 space-y-3">
                                                     <label className={labelClass}>Straße</label>
-                                                    {streets.length > 0 ? (
-                                                        <select required name="street" value={formData.street} onChange={handleChange} className={inputClass}>
-                                                            <option value="">Straße wählen...</option>
-                                                            {streets.map((s, idx) => (
-                                                                <option key={`${s.name}-${idx}`} value={s.name}>{s.name}</option>
-                                                            ))}
-                                                        </select>
-                                                    ) : (
-                                                        <input required name="street" value={formData.street} onChange={handleChange} type="text" placeholder="z.B. Musterstr." className={inputClass} />
-                                                    )}
+                                                    <div className="relative group">
+                                                        <input 
+                                                            required 
+                                                            name="street" 
+                                                            list="street-list"
+                                                            value={formData.street} 
+                                                            onChange={handleChange} 
+                                                            type="text" 
+                                                            placeholder="Straße suchen veya manuel gir..." 
+                                                            className={`${inputClass} ${streets.length > 0 && !streets.some(s => s.name === formData.street) && formData.street.length > 3 ? 'border-orange-200' : ''}`} 
+                                                        />
+                                                        {streets.length > 0 && (
+                                                            <datalist id="street-list">
+                                                                {streets.map((s, idx) => (
+                                                                    <option key={`${s.name}-${idx}`} value={s.name} />
+                                                                ))}
+                                                            </datalist>
+                                                        )}
+                                                        {streets.length > 0 && !streets.some(s => s.name === formData.street) && formData.street.length > 3 && (
+                                                            <p className="absolute -bottom-5 left-0 text-[8px] text-orange-500 font-bold uppercase tracking-widest">
+                                                                Hinweis: Straße nicht in der Liste gefunden. Bitte prüfen.
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-3">
                                                     <label className={labelClass}>Hausnr.</label>
@@ -790,16 +804,24 @@ export default function PerleFunnel() {
                                             </div>
                                             <div className="space-y-3">
                                                 <label className={labelClass}>Stadt</label>
-                                                {localities.length > 1 ? (
-                                                    <select required name="city" value={formData.city} onChange={handleChange} className={inputClass}>
-                                                        <option value="">Ort wählen...</option>
-                                                        {localities.map((l, idx) => (
-                                                            <option key={`${l.name}-${idx}`} value={l.name}>{l.name}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <input required name="city" value={formData.city} onChange={handleChange} type="text" className={inputClass} />
-                                                )}
+                                                <div className="relative">
+                                                    <input 
+                                                        required 
+                                                        name="city" 
+                                                        list="city-list"
+                                                        value={formData.city} 
+                                                        onChange={handleChange} 
+                                                        type="text" 
+                                                        className={inputClass} 
+                                                    />
+                                                    {localities.length > 1 && (
+                                                        <datalist id="city-list">
+                                                            {localities.map((l, idx) => (
+                                                                <option key={`${l.name}-${idx}`} value={l.name} />
+                                                            ))}
+                                                        </datalist>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
