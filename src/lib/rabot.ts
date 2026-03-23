@@ -128,8 +128,8 @@ export async function getRabotTariffs(token: string) {
 
 export async function calculateRabotPrice(data: {
     tariffKey: string;
-    zipCode: string;
-    yearlyConsumptionKwh: number;
+    postCode: string;
+    yearlyConsumption: number;
     hasSmartMeter?: boolean;
     hasElectricVehicle?: boolean;
 }, token: string) {
@@ -142,15 +142,27 @@ export async function calculateRabotPrice(data: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            zipCode: data.zipCode,
-            yearlyConsumptionKwh: data.yearlyConsumptionKwh,
+            postCode: data.postCode,
+            yearlyConsumption: data.yearlyConsumption,
             hasSmartMeter: data.hasSmartMeter || false,
             hasElectricVehicle: data.hasElectricVehicle || false
         })
     });
 
     if (!res.ok) {
-        throw new Error(`Failed to calculate price: ${res.statusText}`);
+        let errorDetail = "";
+        try {
+            const errorBody = await res.json();
+            errorDetail = JSON.stringify(errorBody);
+        } catch (e) {
+            try {
+                errorDetail = await res.text();
+            } catch (tError) {
+                errorDetail = res.statusText;
+            }
+        }
+        console.error(`[Rabot API Error] ${res.status} ${res.statusText}: ${errorDetail}`);
+        throw new Error(`Failed to calculate price: ${res.statusText} - ${errorDetail}`);
     }
 
     return res.json();

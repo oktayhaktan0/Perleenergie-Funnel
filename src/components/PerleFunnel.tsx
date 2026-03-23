@@ -115,8 +115,8 @@ export default function PerleFunnel() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tariffKey: tariffToUse.tariffKey,
-                    zipCode: formData.postcode,
-                    yearlyConsumptionKwh: parseInt(formData.usage),
+                    postCode: formData.postcode,
+                    yearlyConsumption: parseInt(formData.usage),
                     hasSmartMeter: formData.hasSmartMeter,
                     hasElectricVehicle: formData.hasElectricVehicle
                 })

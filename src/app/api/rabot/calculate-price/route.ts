@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         console.log("[Calculate-Price Route] Fetching auth token explicitly...");
         const token = await getAccessToken();
         
-        console.log("[Calculate-Price Route] Auth token obtained, calculating for zip:", body.postcode);
+        console.log("[Calculate-Price Route] Auth token obtained, calculating for zip:", body.postCode);
         const result = await calculateRabotPrice(body, token);
         
         return NextResponse.json(result);
