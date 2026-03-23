@@ -126,14 +126,8 @@ export async function getRabotTariffs(token: string) {
     return res.json();
 }
 
-export async function calculateRabotPrice(data: {
-    tariffKey: string;
-    postCode: string;
-    yearlyConsumption: number;
-    hasSmartMeter?: boolean;
-    hasElectricVehicle?: boolean;
-}, token: string) {
-    const { tariffKey, ...body } = data;
+export async function calculateRabotPrice(data: any, token: string) {
+    const { tariffKey } = data;
     const res = await fetch(`${RABOT_ACTIVE_API_URL}/tariffs/${tariffKey}/calculation`, {
         method: 'POST',
         cache: 'no-store', // Disable caching!
@@ -142,8 +136,8 @@ export async function calculateRabotPrice(data: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            ZipCode: data.postCode,
-            yearlyConsumptionKwh: data.yearlyConsumption,
+            ZipCode: data.zipCode || data.postCode,
+            yearlyConsumptionKwh: data.yearlyConsumptionKwh || data.yearlyConsumption,
             hasSmartMeter: data.hasSmartMeter || false,
             hasElectricVehicle: data.hasElectricVehicle || false
         })
