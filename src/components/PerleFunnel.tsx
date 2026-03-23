@@ -39,6 +39,7 @@ export default function PerleFunnel() {
     const [tariffs, setTariffs] = useState<TariffSelection[]>([]);
     const [selectedTariff, setSelectedTariff] = useState<TariffSelection | null>(null);
     const [priceQuote, setPriceQuote] = useState<PriceQuote | null>(null);
+    const [allPriceQuotes, setAllPriceQuotes] = useState<{[key: string]: PriceQuote}>({});
     const [showTariffDetail, setShowTariffDetail] = useState(false);
     const [householdSize, setHouseholdSize] = useState(2);
     const [customerType, setCustomerType] = useState<"Private" | "Business">("Private");
@@ -168,19 +169,42 @@ export default function PerleFunnel() {
         // Calculate all tariffs to show comparison
         setLoading(true);
         try {
-            const allPrices: { [key: string]: PriceQuote } = {};
-            const token = await fetch('/api/rabot/tariffs').then(r => r.json());
+            const results: {[key: string]: PriceQuote} = {};
             
-            // Calculate for the first tariff to show results
-            const defaultTariff = tariffs[0];
-            if (defaultTariff) {
-                const success = await calculatePrice(defaultTariff);
-                if (success) {
-                    setShowTariffDetail(false); // Show tariff list, not detail
+            // Fetch prices for all available tariffs
+            const fetchPromises = tariffs.map(async (t) => {
+                const res = await fetch('/api/rabot/calculate-price', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tariffKey: t.tariffKey,
+                        zipCode: formData.postcode,
+                        yearlyConsumptionKwh: parseInt(formData.usage),
+                        hasSmartMeter: formData.hasSmartMeter,
+                        hasElectricVehicle: formData.hasElectricVehicle
+                    })
+                });
+                const data = await res.json();
+                if (data.isSuccess) {
+                    results[t.tariffKey] = data.data;
                 }
+            });
+
+            await Promise.all(fetchPromises);
+            setAllPriceQuotes(results);
+
+            // Set the first one as default priceQuote for the detail view
+            if (tariffs[0] && results[tariffs[0].tariffKey]) {
+                setPriceQuote(results[tariffs[0].tariffKey]);
+                setSelectedTariff(tariffs[0]);
             }
+            
+            setShowTariffDetail(false);
         } catch (err) {
+            console.error("[PerleFunnel] Fetch all prices error:", err);
             toast.error("Fehler bei der Berechnung.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -462,7 +486,9 @@ export default function PerleFunnel() {
                                                 </span>
                                             </div>
                                             <div className="pt-2">
-                                                <span className="text-4xl font-black text-[#202324]">—</span>
+                                                <span className="text-4xl font-black text-[#202324]">
+                                                    {allPriceQuotes[t.tariffKey]?.priceComponents.pricePerMonth.value.toFixed(2) || "—"}
+                                                </span>
                                                 <span className="text-sm text-[#202324]/40 font-medium ml-2">€ pro Monat</span>
                                             </div>
                                             <button
