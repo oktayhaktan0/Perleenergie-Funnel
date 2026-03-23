@@ -331,7 +331,7 @@ export default function PerleFunnel() {
         </button>
     );
 
-    const inputClass = "w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold placeholder:text-[#202324]/20";
+    const inputClass = "w-full bg-white border border-[#202324]/10 rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] focus:border-[#e8ac15] font-bold placeholder:text-[#202324]/20 transition-all";
     const labelClass = "text-xs font-bold text-[#202324]/60 uppercase tracking-widest";
 
     return (
