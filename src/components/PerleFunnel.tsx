@@ -46,6 +46,12 @@ export default function PerleFunnel() {
     const [localities, setLocalities] = useState<any[]>([]);
     const [streets, setStreets] = useState<any[]>([]);
     const [geoLoading, setGeoLoading] = useState(false);
+    
+    // UI states for custom search dropdowns
+    const [showStreetDropdown, setShowStreetDropdown] = useState(false);
+    const [showCityDropdown, setShowCityDropdown] = useState(false);
+    const [streetSearch, setStreetSearch] = useState("");
+    const [citySearch, setCitySearch] = useState("");
     const [householdSize, setHouseholdSize] = useState(2);
     const [customerType, setCustomerType] = useState<"Private" | "Business">("Private");
     const [showPersonalFields, setShowPersonalFields] = useState(false);
@@ -144,6 +150,15 @@ export default function PerleFunnel() {
             fetchGeo();
         }
     }, [showPersonalFields, formData.postcode]);
+
+    // Update internal search state when street changes from outside or reset
+    useEffect(() => {
+        setStreetSearch(formData.street);
+    }, [formData.street]);
+
+    useEffect(() => {
+        setCitySearch(formData.city);
+    }, [formData.city]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -766,30 +781,53 @@ export default function PerleFunnel() {
                                     <div className="bg-[#f2f2f2] rounded-2xl p-6 md:p-8">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="md:col-span-2 grid grid-cols-3 gap-6">
-                                                <div className="col-span-2 space-y-3">
+                                                <div className="col-span-2 space-y-3 relative">
                                                     <label className={labelClass}>Straße</label>
-                                                    <div className="relative group">
+                                                    <div className="relative">
                                                         <input 
                                                             required 
                                                             name="street" 
-                                                            list="street-list"
-                                                            value={formData.street} 
-                                                            onChange={handleChange} 
+                                                            autoComplete="off"
+                                                            value={streetSearch} 
+                                                            onFocus={() => setShowStreetDropdown(true)}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setStreetSearch(val);
+                                                                setFormData(prev => ({ ...prev, street: val }));
+                                                                setShowStreetDropdown(true);
+                                                            }} 
                                                             type="text" 
-                                                            placeholder="Straße suchen veya manuel gir..." 
-                                                            className={`${inputClass} ${streets.length > 0 && !streets.some(s => s.name === formData.street) && formData.street.length > 3 ? 'border-orange-200' : ''}`} 
+                                                            placeholder="Straße suchen..." 
+                                                            className={`${inputClass} ${streets.length > 0 && !streets.some(s => s.name === streetSearch) && streetSearch.length > 3 ? 'border-orange-200' : ''}`} 
                                                         />
-                                                        {streets.length > 0 && (
-                                                            <datalist id="street-list">
-                                                                {streets.map((s, idx) => (
-                                                                    <option key={`${s.name}-${idx}`} value={s.name} />
-                                                                ))}
-                                                            </datalist>
+                                                        {showStreetDropdown && streets.length > 0 && (
+                                                            <div className="absolute z-50 w-full mt-1 bg-white border border-[#202324]/10 rounded-2xl shadow-2xl max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                                                {streets
+                                                                    .filter(s => s.name.toLowerCase().includes(streetSearch.toLowerCase()))
+                                                                    .slice(0, 50)
+                                                                    .map((s, idx) => (
+                                                                        <button 
+                                                                            key={`${s.name}-${idx}`}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setStreetSearch(s.name);
+                                                                                setFormData(prev => ({ ...prev, street: s.name }));
+                                                                                setShowStreetDropdown(false);
+                                                                            }}
+                                                                            className="w-full px-5 py-4 text-left text-sm font-bold text-[#202324] hover:bg-[#e8ac15]/10 hover:text-[#e8ac15] transition-colors border-b border-gray-50 last:border-0 flex items-center justify-between group"
+                                                                        >
+                                                                            {s.name}
+                                                                            <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 transform translate-x-1 transition-all" />
+                                                                        </button>
+                                                                    ))}
+                                                                {streets.filter(s => s.name.toLowerCase().includes(streetSearch.toLowerCase())).length === 0 && (
+                                                                    <div className="px-5 py-6 text-xs text-[#202324]/40 font-bold italic">Keine Straße gefunden.</div>
+                                                                )}
+                                                            </div>
                                                         )}
-                                                        {streets.length > 0 && !streets.some(s => s.name === formData.street) && formData.street.length > 3 && (
-                                                            <p className="absolute -bottom-5 left-0 text-[8px] text-orange-500 font-bold uppercase tracking-widest">
-                                                                Hinweis: Straße nicht in der Liste gefunden. Bitte prüfen.
-                                                            </p>
+                                                        {/* Backdrop for closing dropdown */}
+                                                        {showStreetDropdown && (
+                                                            <div className="fixed inset-0 z-40" onClick={() => setShowStreetDropdown(false)} />
                                                         )}
                                                     </div>
                                                 </div>
@@ -802,24 +840,46 @@ export default function PerleFunnel() {
                                                 <label className={labelClass}>PLZ</label>
                                                 <input required name="postcode" value={formData.postcode} disabled type="text" className={`${inputClass} opacity-50 cursor-not-allowed`} />
                                             </div>
-                                            <div className="space-y-3">
+                                            <div className="space-y-3 relative">
                                                 <label className={labelClass}>Stadt</label>
                                                 <div className="relative">
                                                     <input 
                                                         required 
                                                         name="city" 
-                                                        list="city-list"
-                                                        value={formData.city} 
-                                                        onChange={handleChange} 
+                                                        autoComplete="off"
+                                                        value={citySearch} 
+                                                        onFocus={() => setShowCityDropdown(true)}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setCitySearch(val);
+                                                            setFormData(prev => ({ ...prev, city: val }));
+                                                            setShowCityDropdown(true);
+                                                        }} 
                                                         type="text" 
                                                         className={inputClass} 
                                                     />
-                                                    {localities.length > 1 && (
-                                                        <datalist id="city-list">
-                                                            {localities.map((l, idx) => (
-                                                                <option key={`${l.name}-${idx}`} value={l.name} />
-                                                            ))}
-                                                        </datalist>
+                                                    {showCityDropdown && localities.length > 1 && (
+                                                        <div className="absolute z-50 w-full mt-1 bg-white border border-[#202324]/10 rounded-2xl shadow-2xl max-h-40 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                                                            {localities
+                                                                .filter(l => l.name.toLowerCase().includes(citySearch.toLowerCase()))
+                                                                .map((l, idx) => (
+                                                                    <button 
+                                                                        key={`${l.name}-${idx}`}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setCitySearch(l.name);
+                                                                            setFormData(prev => ({ ...prev, city: l.name }));
+                                                                            setShowCityDropdown(false);
+                                                                        }}
+                                                                        className="w-full px-5 py-4 text-left text-sm font-bold text-[#202324] hover:bg-[#e8ac15]/10 hover:text-[#e8ac15] transition-colors"
+                                                                    >
+                                                                        {l.name}
+                                                                    </button>
+                                                                ))}
+                                                        </div>
+                                                    )}
+                                                    {showCityDropdown && localities.length > 1 && (
+                                                        <div className="fixed inset-0 z-40" onClick={() => setShowCityDropdown(false)} />
                                                     )}
                                                 </div>
                                             </div>
