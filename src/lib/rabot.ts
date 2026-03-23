@@ -128,28 +128,26 @@ export async function getRabotTariffs(token: string) {
 
 export async function calculateRabotPrice(data: any, token: string) {
     const { tariffKey } = data;
+    
+    const requestBody = {
+        zipCode: data.zipCode || data.postCode,
+        yearlyConsumptionKwh: data.yearlyConsumptionKwh || data.yearlyConsumption,
+        hasSmartMeter: data.hasSmartMeter || false,
+        hasElectricVehicle: data.hasElectricVehicle || false
+    };
+
+    console.log(`[Rabot Request] URL: ${RABOT_ACTIVE_API_URL}/tariffs/${tariffKey}/calculation`);
+    console.log(`[Rabot Request] Body:`, JSON.stringify(requestBody));
+
     const res = await fetch(`${RABOT_ACTIVE_API_URL}/tariffs/${tariffKey}/calculation`, {
         method: 'POST',
-        cache: 'no-store', // Disable caching!
+        cache: 'no-store',
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-            ZipCode: data.zipCode || data.postCode,
-            yearlyConsumptionKwh: data.yearlyConsumptionKwh || data.yearlyConsumption,
-            hasSmartMeter: data.hasSmartMeter || false,
-            hasElectricVehicle: data.hasElectricVehicle || false
-        })
+        body: JSON.stringify(requestBody)
     });
-
-    console.log(`[Rabot Request] URL: ${RABOT_ACTIVE_API_URL}/tariffs/${tariffKey}/calculation`);
-    console.log(`[Rabot Request] Body:`, JSON.stringify({
-        ZipCode: data.postCode,
-        yearlyConsumptionKwh: data.yearlyConsumption,
-        hasSmartMeter: data.hasSmartMeter || false,
-        hasElectricVehicle: data.hasElectricVehicle || false
-    }));
 
     if (!res.ok) {
         let errorDetail = "";

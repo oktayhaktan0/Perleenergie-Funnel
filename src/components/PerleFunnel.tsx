@@ -105,9 +105,11 @@ export default function PerleFunnel() {
 
     const calculatePrice = async (tariffToUse?: TariffSelection) => {
         setLoading(true);
+        const previousTariff = selectedTariff;
+        const previousQuote = priceQuote;
         try {
             const actualTariff = tariffToUse || selectedTariff || tariffs[0];
-            setSelectedTariff(actualTariff); // Trigger state update
+            setSelectedTariff(actualTariff);
             
             const res = await fetch('/api/rabot/calculate-price', {
                 method: 'POST',
@@ -123,11 +125,19 @@ export default function PerleFunnel() {
             const data = await res.json();
             if (data.isSuccess) {
                 setPriceQuote(data.data);
-                if (step === 1) setStep(2); // Only change step if we are on Step 1
+                if (step === 1) setStep(2);
             } else {
-                toast.error("Preisberechnung fehlgeschlagen.");
+                console.error("[PerleFunnel] Price calc failed:", data.message);
+                // Restore previous selection on failure
+                if (previousTariff) setSelectedTariff(previousTariff);
+                if (previousQuote) setPriceQuote(previousQuote);
+                toast.error(data.message || "Preisberechnung fehlgeschlagen.");
             }
         } catch (err) {
+            console.error("[PerleFunnel] Price calc error:", err);
+            // Restore previous selection on error
+            if (previousTariff) setSelectedTariff(previousTariff);
+            if (previousQuote) setPriceQuote(previousQuote);
             toast.error("Fehler bei der Preisberechnung.");
         } finally {
             setLoading(false);
