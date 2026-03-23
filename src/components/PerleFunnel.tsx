@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowRight, ArrowLeft, Check, Zap, Smartphone, Leaf, Shield, CreditCard, User, Home, Activity } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Zap, Shield, CreditCard, User, Home, Activity, Smartphone, Car, Flame, Sun, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface TariffSelection {
@@ -22,19 +22,32 @@ interface PriceQuote {
     noticePeriod: { value: number; unitText: string };
 }
 
+const HOUSEHOLD_SIZES = [
+    { persons: 1, kwh: 1500 },
+    { persons: 2, kwh: 2500 },
+    { persons: 3, kwh: 3500 },
+    { persons: 4, kwh: 4500 },
+    { persons: 5, kwh: 5500 },
+];
+
+const STEP_LABELS = ["Tarifangebot", "Über dich", "Wechseldetails", "Zahlung", "Übersicht"];
+
 export default function PerleFunnel() {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [tariffs, setTariffs] = useState<TariffSelection[]>([]);
     const [selectedTariff, setSelectedTariff] = useState<TariffSelection | null>(null);
     const [priceQuote, setPriceQuote] = useState<PriceQuote | null>(null);
+    const [showTariffDetail, setShowTariffDetail] = useState(false);
+    const [householdSize, setHouseholdSize] = useState(2);
+    const [customerType, setCustomerType] = useState<"Private" | "Business">("Private");
 
     // Form data
     const [formData, setFormData] = useState({
         // Step 1
         postcode: "",
         usage: "2500",
-        // Step 3: Personal
+        // Step 2: Personal
         email: "",
         firstName: "",
         lastName: "",
@@ -42,18 +55,18 @@ export default function PerleFunnel() {
         dateOfBirth: "",
         password: "",
         phone: "",
-        // Step 4: Address
+        // Address
         street: "",
         houseNumber: "",
         city: "",
-        // Step 5: Delivery
+        // Step 3: Delivery
         meterNumber: "",
         maLoIdentifier: "",
-        desiredTransitionDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 2 weeks out
+        desiredTransitionDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         moveInDate: "",
         previousSupplierCode: "",
-        contractReason: "ChangeOfSupplier", // or NewDeliveryLocation
-        // Step 6: Bank
+        contractReason: "ChangeOfSupplier",
+        // Step 4: Bank
         iban: "",
         bic: "",
         accountHolder: "",
@@ -61,9 +74,13 @@ export default function PerleFunnel() {
         hasElectricVehicle: false,
         hasSmartMeter: false,
         hasHeatPump: false,
-        // Additional Address
+        hasPhotovoltaik: false,
+        // Additional
         extension: "",
         title: "",
+        businessName: "",
+        // Campaign
+        campaignCode: "",
     });
 
     // Fetch tariffs on mount
@@ -79,29 +96,21 @@ export default function PerleFunnel() {
                     }));
                     setTariffs(sanitizedTariffs);
                 }
-            })
-            .catch(err => console.error("Error fetching tariffs", err));
+            }).catch(() => toast.error("Tarife konnten nicht geladen werden."));
     }, []);
+
+    // Update usage when household size changes
+    useEffect(() => {
+        const match = HOUSEHOLD_SIZES.find(h => h.persons === householdSize);
+        if (match) {
+            setFormData(prev => ({ ...prev, usage: match.kwh.toString() }));
+        }
+    }, [householdSize]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
-
-    const nextStep = () => {
-        if (step === 1 && (!formData.postcode || !formData.usage)) {
-            toast.error("Bitte gib Postleitzahl und Verbrauch ein.");
-            return;
-        }
-
-        if (step === 1) {
-            calculatePrice();
-        } else {
-            setStep(prev => prev + 1);
-        }
-    };
-
-    const prevStep = () => setStep(prev => prev - 1);
 
     const calculatePrice = async (tariffToUse?: TariffSelection) => {
         setLoading(true);
@@ -110,13 +119,13 @@ export default function PerleFunnel() {
         try {
             const actualTariff = tariffToUse || selectedTariff || tariffs[0];
             setSelectedTariff(actualTariff);
-            
+
             const res = await fetch('/api/rabot/calculate-price', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tariffKey: actualTariff.tariffKey,
-                    zipCode: formData.postcode, 
+                    zipCode: formData.postcode,
                     yearlyConsumptionKwh: parseInt(formData.usage),
                     hasSmartMeter: formData.hasSmartMeter,
                     hasElectricVehicle: formData.hasElectricVehicle
@@ -125,22 +134,73 @@ export default function PerleFunnel() {
             const data = await res.json();
             if (data.isSuccess) {
                 setPriceQuote(data.data);
-                if (step === 1) setStep(2);
+                setShowTariffDetail(true);
+                return true;
             } else {
                 console.error("[PerleFunnel] Price calc failed:", data.message);
-                // Restore previous selection on failure
                 if (previousTariff) setSelectedTariff(previousTariff);
                 if (previousQuote) setPriceQuote(previousQuote);
                 toast.error(data.message || "Preisberechnung fehlgeschlagen.");
+                return false;
             }
         } catch (err) {
             console.error("[PerleFunnel] Price calc error:", err);
-            // Restore previous selection on error
             if (previousTariff) setSelectedTariff(previousTariff);
             if (previousQuote) setPriceQuote(previousQuote);
             toast.error("Fehler bei der Preisberechnung.");
+            return false;
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleCalculateClick = async () => {
+        if (!formData.postcode || formData.postcode.length !== 5) {
+            toast.error("Bitte gib eine gültige 5-stellige PLZ ein.");
+            return;
+        }
+        if (!formData.usage || parseInt(formData.usage) < 100) {
+            toast.error("Bitte gib einen Verbrauch von mindestens 100 kWh an.");
+            return;
+        }
+        // Calculate all tariffs to show comparison
+        setLoading(true);
+        try {
+            const allPrices: { [key: string]: PriceQuote } = {};
+            const token = await fetch('/api/rabot/tariffs').then(r => r.json());
+            
+            // Calculate for the first tariff to show results
+            const defaultTariff = tariffs[0];
+            if (defaultTariff) {
+                const success = await calculatePrice(defaultTariff);
+                if (success) {
+                    setShowTariffDetail(false); // Show tariff list, not detail
+                }
+            }
+        } catch (err) {
+            toast.error("Fehler bei der Berechnung.");
+        }
+    };
+
+    const selectTariffAndShowDetail = async (tariff: TariffSelection) => {
+        const success = await calculatePrice(tariff);
+        if (success) {
+            setShowTariffDetail(true);
+        }
+    };
+
+    const nextStep = () => {
+        setStep(prev => prev + 1);
+    };
+
+    const prevStep = () => {
+        if (step === 1 && showTariffDetail) {
+            setShowTariffDetail(false);
+        } else if (step === 1 && priceQuote) {
+            setPriceQuote(null);
+            setShowTariffDetail(false);
+        } else {
+            setStep(prev => prev - 1);
         }
     };
 
@@ -155,18 +215,18 @@ export default function PerleFunnel() {
                     password: formData.password,
                     firstName: formData.firstName,
                     lastName: formData.lastName,
-                    businessName: null, // Can be expanded for B2B if needed
+                    businessName: customerType === "Business" ? formData.businessName : null,
                     gender: formData.gender,
                     dateOfBirth: formData.dateOfBirth
                 },
                 contract: {
                     externalId: `PERLE-${Date.now()}`,
-                    type: "Private",
+                    type: customerType,
                     deliveryAddress: {
                         title: formData.title || null,
                         firstName: formData.firstName,
                         lastName: formData.lastName,
-                        businessName: null,
+                        businessName: customerType === "Business" ? formData.businessName : null,
                         gender: formData.gender,
                         extension: formData.extension || null,
                         streetName: formData.street,
@@ -175,7 +235,7 @@ export default function PerleFunnel() {
                         postCode: formData.postcode,
                         countryCode: "DE"
                     },
-                    billingAddress: null, // Same as delivery address
+                    billingAddress: null,
                     bankDetails: {
                         accountHolder: formData.accountHolder,
                         iban: formData.iban,
@@ -204,9 +264,9 @@ export default function PerleFunnel() {
                         privacyPolicy: true,
                         revocationPolicy: true
                     },
-                    transactionDateTime: new Date().toISOString()
+                    transactionDateTime: null
                 },
-                campaignCode: null
+                campaignCode: formData.campaignCode || null
             };
 
             const res = await fetch('/api/rabot/order', {
@@ -216,7 +276,7 @@ export default function PerleFunnel() {
             });
             const data = await res.json();
             if (data.isSuccess) {
-                setStep(8); // Success step
+                setStep(6); // Success step
                 toast.success("Bestellung erfolgreich übermittelt!");
             } else {
                 toast.error(data.message || "Bestellvorgang fehlgeschlagen.");
@@ -228,39 +288,90 @@ export default function PerleFunnel() {
         }
     };
 
-    const progress = (step / 7) * 100;
+    const progress = priceQuote ? ((step) / 5) * 100 : 0;
+
+    // Helper for capability toggles in Step 1
+    const CapabilityToggle = ({ icon: Icon, label, checked, onChange }: { icon: any; label: string; checked: boolean; onChange: (v: boolean) => void }) => (
+        <button
+            type="button"
+            onClick={() => onChange(!checked)}
+            className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${checked ? 'border-[#e8ac15] bg-[#e8ac15]/5' : 'border-[#202324]/5 hover:border-[#202324]/15'}`}
+        >
+            <Icon size={28} className={checked ? 'text-[#e8ac15]' : 'text-[#202324]/30'} />
+            <span className={`text-xs font-bold ${checked ? 'text-[#202324]' : 'text-[#202324]/40'}`}>{label}</span>
+            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${checked ? 'border-[#e8ac15] bg-[#e8ac15]' : 'border-[#202324]/15'}`}>
+                {checked && <Check size={12} className="text-white" />}
+            </div>
+        </button>
+    );
+
+    const inputClass = "w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold placeholder:text-[#202324]/20";
+    const labelClass = "text-xs font-bold text-[#202324]/60 uppercase tracking-widest";
 
     return (
         <div className="w-full max-w-4xl mx-auto">
-            {/* Progress Bar */}
-            {step < 8 && (
+            {/* Progress Bar — shown from step 2 onwards */}
+            {step >= 1 && priceQuote && step < 6 && (
                 <div className="mb-12">
-                    <div className="h-1.5 w-full bg-[#202324]/5 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-[#e8ac15] transition-all duration-500 ease-out"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    <div className="flex justify-between mt-4 text-[10px] font-extrabold uppercase tracking-widest text-[#202324]/30">
-                        <span>Schritt {step} von 7</span>
-                        <span>{Math.round(progress)}% Abgeschlossen</span>
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                        {STEP_LABELS.map((label, i) => (
+                            <div key={label} className="flex items-center gap-2">
+                                <div className={`w-3 h-3 rounded-full transition-all ${i + 1 <= step ? 'bg-[#e8ac15]' : 'bg-[#202324]/10'}`} />
+                                <span className={`text-[10px] font-bold uppercase tracking-widest hidden sm:inline ${i + 1 <= step ? 'text-[#202324]/60' : 'text-[#202324]/20'}`}>{label}</span>
+                                {i < STEP_LABELS.length - 1 && <div className={`w-8 h-0.5 ${i + 1 < step ? 'bg-[#e8ac15]' : 'bg-[#202324]/10'}`} />}
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
 
             {/* Step Content */}
-            <form onSubmit={(e) => { e.preventDefault(); step === 7 ? submitOrder() : nextStep(); }} className="bg-white rounded-[2.5rem] p-8 md:p-14 border border-[#202324]/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)]">
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-14 border border-[#202324]/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)]">
                 
-                {step === 1 && (
+                {/* ==================== STEP 1: TARIFANGEBOT ==================== */}
+                {step === 1 && !priceQuote && (
                     <div className="space-y-10 animate-fade-in">
+                        <div className="space-y-4 text-center">
+                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Finde das passende <span className="text-[#e8ac15]">Stromangebot.</span></h3>
+                            <p className="text-lg text-[#202324]/50 font-medium">Berechne jetzt, wie viel Du bei uns sparen kannst!</p>
+                        </div>
+
+                        {/* Household Size Selector */}
                         <div className="space-y-4">
-                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Berechne deinen <span className="text-[#e8ac15]">Ökostrom-Vorteil.</span></h3>
-                            <p className="text-lg text-[#202324]/50 font-medium">Gib deine Postleitzahl und deinen ungefähren Jahresverbrauch an.</p>
+                            <label className={labelClass}>Haushaltsgröße oder Stromverbrauch angeben</label>
+                            <div className="flex items-center justify-center gap-6">
+                                <button type="button" onClick={() => setHouseholdSize(Math.max(1, householdSize - 1))} className="w-12 h-12 rounded-full border-2 border-[#e8ac15] flex items-center justify-center text-[#e8ac15] hover:bg-[#e8ac15]/10 transition-all">
+                                    <Minus size={20} />
+                                </button>
+                                <div className="flex items-center gap-2">
+                                    <User size={20} className="text-[#202324]/40" />
+                                    <span className="text-xl font-bold text-[#202324]">{householdSize} {householdSize === 1 ? 'Person' : 'Personen'}</span>
+                                </div>
+                                <button type="button" onClick={() => setHouseholdSize(Math.min(5, householdSize + 1))} className="w-12 h-12 rounded-full border-2 border-[#e8ac15] flex items-center justify-center text-[#e8ac15] hover:bg-[#e8ac15]/10 transition-all">
+                                    <Plus size={20} />
+                                </button>
+                            </div>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-3">
-                                <label className="text-sm font-bold text-[#202324]/60 uppercase tracking-widest">Postleitzahl</label>
+                                <label className={labelClass}>Stromverbrauch (kWh)</label>
+                                <div className="relative">
+                                    <Zap size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#202324]/20" />
+                                    <input
+                                        required
+                                        type="number"
+                                        name="usage"
+                                        value={formData.usage}
+                                        onChange={handleChange}
+                                        placeholder="2500"
+                                        className={`${inputClass} pl-10`}
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#202324]/30 font-bold text-sm">kWh</span>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <label className={labelClass}>PLZ</label>
                                 <input
                                     required
                                     type="text"
@@ -268,60 +379,143 @@ export default function PerleFunnel() {
                                     value={formData.postcode}
                                     onChange={handleChange}
                                     placeholder="z.B. 10115"
-                                    className="w-full bg-[#f2f2f2] border-none rounded-2xl px-6 py-5 focus:ring-2 focus:ring-[#e8ac15] transition-all font-bold text-xl placeholder:text-[#202324]/20"
-                                />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-sm font-bold text-[#202324]/60 uppercase tracking-widest">Jahresverbrauch (kWh)</label>
-                                <input
-                                    required
-                                    type="number"
-                                    name="usage"
-                                    value={formData.usage}
-                                    onChange={handleChange}
-                                    placeholder="2500"
-                                    className="w-full bg-[#f2f2f2] border-none rounded-2xl px-6 py-5 focus:ring-2 focus:ring-[#e8ac15] transition-all font-bold text-xl placeholder:text-[#202324]/20"
+                                    maxLength={5}
+                                    className={inputClass}
                                 />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {[1500, 2500, 3500, 5000].map(val => (
-                                <button
-                                    key={val}
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, usage: val.toString() }))}
-                                    className={`py-4 rounded-xl font-bold transition-all ${formData.usage === val.toString() ? 'bg-[#202324] text-white shadow-lg' : 'bg-slate-50 text-[#202324]/40 hover:bg-slate-100 border border-[#202324]/5'}`}
-                                >
-                                    {val} kWh
+                        {/* Capability Checkboxes */}
+                        <div className="space-y-4">
+                            <label className={labelClass}>Nutzt Du in Deinem Haushalt folgende Dinge?</label>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <CapabilityToggle icon={Smartphone} label="Smart Meter" checked={formData.hasSmartMeter} onChange={(v) => setFormData(prev => ({...prev, hasSmartMeter: v}))} />
+                                <CapabilityToggle icon={Car} label="Elektro-Auto" checked={formData.hasElectricVehicle} onChange={(v) => setFormData(prev => ({...prev, hasElectricVehicle: v}))} />
+                                <CapabilityToggle icon={Flame} label="Wärmepumpe" checked={formData.hasHeatPump} onChange={(v) => setFormData(prev => ({...prev, hasHeatPump: v}))} />
+                                <CapabilityToggle icon={Sun} label="Photovoltaik" checked={formData.hasPhotovoltaik} onChange={(v) => setFormData(prev => ({...prev, hasPhotovoltaik: v}))} />
+                            </div>
+                        </div>
+
+                        {/* Calculate Button */}
+                        <button
+                            type="button"
+                            onClick={handleCalculateClick}
+                            disabled={loading || tariffs.length === 0}
+                            className={`w-full flex items-center justify-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl group ${loading ? 'bg-[#202324]/10 cursor-not-allowed text-[#202324]/20' : 'bg-[#e8ac15] text-[#202324] hover:bg-[#202324] hover:text-white'}`}
+                        >
+                            {loading ? 'Berechne...' : 'Jetzt unverbindlich berechnen'}
+                            {!loading && <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />}
+                        </button>
+                    </div>
+                )}
+
+                {/* TARIFF COMPARISON LIST */}
+                {step === 1 && priceQuote && !showTariffDetail && (
+                    <div className="space-y-10 animate-fade-in">
+                        <div className="space-y-4 text-center">
+                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Alle Stromtarife im <span className="text-[#e8ac15]">Vergleich.</span></h3>
+                            <p className="text-lg text-[#202324]/50 font-medium">
+                                Für {formData.usage} kWh in {formData.postcode}
+                                {formData.hasElectricVehicle ? ' mit E-Auto' : ' ohne E-Auto'}
+                                {formData.hasSmartMeter ? ' und mit Smart-Meter' : ' und ohne Smart-Meter'}
+                                <button type="button" onClick={() => { setPriceQuote(null); setShowTariffDetail(false); }} className="ml-2 text-[#e8ac15] hover:underline">✏️</button>
+                            </p>
+                        </div>
+
+                        {/* Campaign Code */}
+                        <div className="text-center space-y-2">
+                            <p className="text-sm font-bold text-[#202324]/60">Hast du einen Gutschein- oder Empfehlungscode erhalten?</p>
+                            <div className="flex items-center justify-center gap-3 max-w-md mx-auto">
+                                <input
+                                    type="text"
+                                    name="campaignCode"
+                                    value={formData.campaignCode}
+                                    onChange={handleChange}
+                                    placeholder="Code eingeben"
+                                    className={`${inputClass} text-center`}
+                                />
+                                <button type="button" className="px-6 py-4 rounded-xl border-2 border-[#202324]/10 font-bold text-sm text-[#202324]/60 hover:border-[#e8ac15] transition-all">
+                                    Einlösen
                                 </button>
-                            ))}
+                            </div>
+                        </div>
+
+                        {/* Tariff Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {tariffs.map((t, index) => {
+                                const labels: { [key: number]: { badge: string; highlight?: boolean } } = {
+                                    0: { badge: "Maximal flexibel" },
+                                    1: { badge: "Am beliebtesten", highlight: true },
+                                    2: { badge: "Feste Preise" },
+                                };
+                                const tariffLabel = labels[index] || { badge: t.tariffName };
+
+                                return (
+                                    <div key={t.tariffKey} className={`relative p-8 rounded-2xl border-2 transition-all ${tariffLabel.highlight ? 'border-[#e8ac15] bg-[#e8ac15]/5' : 'border-[#202324]/5 hover:border-[#202324]/15'}`}>
+                                        <div className="space-y-4">
+                                            <h4 className="font-black text-xl text-[#202324]">{t.tariffName}</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${tariffLabel.highlight ? 'bg-[#e8ac15] text-[#202324]' : 'bg-[#202324]/5 text-[#202324]/60'}`}>
+                                                    {tariffLabel.badge}
+                                                </span>
+                                            </div>
+                                            <div className="pt-2">
+                                                <span className="text-4xl font-black text-[#202324]">—</span>
+                                                <span className="text-sm text-[#202324]/40 font-medium ml-2">€ pro Monat</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => selectTariffAndShowDetail(t)}
+                                                disabled={loading}
+                                                className={`w-full py-4 rounded-xl font-bold transition-all ${loading ? 'bg-[#202324]/5 text-[#202324]/20' : 'bg-[#e8ac15] text-[#202324] hover:bg-[#202324] hover:text-white'}`}
+                                            >
+                                                {loading ? 'Lade...' : 'Auswählen'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
 
-                {step === 2 && priceQuote && (
+                {/* TARIFF DETAIL VIEW */}
+                {step === 1 && priceQuote && showTariffDetail && (
                     <div className="space-y-10 animate-fade-in">
-                        <div className="space-y-4">
-                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Dein <span className="text-[#e8ac15]">Angebot</span> steht.</h3>
-                            <p className="text-lg text-[#202324]/50 font-medium">Beste Konditionen für saubere Energie in {formData.postcode}.</p>
+                        <div className="space-y-4 text-center">
+                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Alle Stromtarife im <span className="text-[#e8ac15]">Vergleich.</span></h3>
+                            <p className="text-lg text-[#202324]/50 font-medium">
+                                Für {formData.usage} kWh in {formData.postcode}
+                            </p>
+                        </div>
+
+                        <button type="button" onClick={() => setShowTariffDetail(false)} className="text-[#e8ac15] font-bold flex items-center gap-2 hover:underline">
+                            <ArrowLeft size={16} /> zurück zur Tarifauswahl
+                        </button>
+
+                        <div className="space-y-2">
+                            <h4 className="text-xl font-black text-[#202324]">Dein ausgewählter Tarif</h4>
                         </div>
 
                         <div className="bg-[#202324] text-white rounded-[2rem] p-10 relative overflow-hidden group">
-                             <div className="absolute top-0 right-0 p-8 text-[#e8ac15]/10 group-hover:text-[#e8ac15]/20 transition-colors pointer-events-none">
+                            <div className="absolute top-0 right-0 p-8 text-[#e8ac15]/10 group-hover:text-[#e8ac15]/20 transition-colors pointer-events-none">
                                 <Zap size={120} strokeWidth={1} />
                             </div>
                             
                             <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="space-y-8">
                                     <div>
-                                        <div className="text-[#e8ac15] font-black text-xs uppercase tracking-[0.2em] mb-4">Monatliche Kosten</div>
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-7xl font-black tracking-tighter">{priceQuote.priceComponents.pricePerMonth.value.toFixed(2)}</span>
-                                            <span className="text-2xl font-bold opacity-30">€ / Mon.</span>
-                                        </div>
+                                        <h4 className="font-black text-xl mb-1">{selectedTariff?.tariffName}</h4>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider bg-white/10 px-3 py-1 rounded-full text-white/50">Aktueller Tarif</span>
                                     </div>
-                                    
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-7xl font-black tracking-tighter">{priceQuote.priceComponents.pricePerMonth.value.toFixed(2)}</span>
+                                        <span className="text-2xl font-bold opacity-30">€ / Mon.</span>
+                                    </div>
+                                    <button type="button" className="text-[#e8ac15] font-bold text-sm hover:underline">Tarif- und Preisdetails</button>
+                                </div>
+
+                                <div className="space-y-4 flex flex-col justify-center border-l border-white/5 pl-0 md:pl-10">
                                     <div className="space-y-4">
                                         <div className="flex items-center gap-3">
                                             <Check className="text-[#e8ac15]" size={18} />
@@ -336,13 +530,6 @@ export default function PerleFunnel() {
                                             <span className="text-sm font-medium text-white/60">Laufzeit: <b>{priceQuote.durationPeriod.value} {priceQuote.durationPeriod.unitText}</b></span>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="space-y-4 flex flex-col justify-center border-l border-white/5 pl-0 md:pl-10">
-                                    <h4 className="font-bold text-xl uppercase tracking-widest text-[#e8ac15]">{selectedTariff?.tariffName}</h4>
-                                    <p className="text-white/40 text-sm font-medium leading-relaxed">
-                                        Dieser Tarif basiert auf echtem Ökostrom und bietet dir maximale Flexibilität bei vollem Preisschutz.
-                                    </p>
                                     <div className="pt-4">
                                         <span className="bg-white/5 text-white/40 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest">Öko-zertifiziert</span>
                                     </div>
@@ -350,210 +537,240 @@ export default function PerleFunnel() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           {tariffs.map(t => (
-                               <button 
+                        {/* Weiter Button */}
+                        <div className="flex items-center justify-between pt-4">
+                            <div />
+                            <button
                                 type="button"
-                                key={t.tariffKey}
-                                 onClick={(e) => {
-                                     e.preventDefault();
-                                     e.stopPropagation();
-                                     calculatePrice(t);
-                                 }}
-                                className={`p-6 rounded-2xl border-2 transition-all flex items-center justify-between group ${selectedTariff?.tariffKey === t.tariffKey ? 'border-[#e8ac15] bg-[#e8ac15]/5' : 'border-[#202324]/5 hover:border-[#202324]/20'}`}
-                               >
-                                   <div className="text-left">
-                                       <div className="font-bold text-[#202324]">{t.tariffName}</div>
-                                       <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#202324]/30">{t.providerName}</div>
-                                   </div>
-                                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedTariff?.tariffKey === t.tariffKey ? 'border-[#e8ac15] bg-[#e8ac15]' : 'border-[#202324]/10'}`}>
-                                       {selectedTariff?.tariffKey === t.tariffKey && <Check size={14} className="text-[#202324]" />}
-                                   </div>
-                               </button>
-                           ))}
+                                onClick={nextStep}
+                                className="flex items-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl group bg-[#202324] text-white hover:bg-[#e8ac15] hover:text-[#202324]"
+                            >
+                                Weiter <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />
+                            </button>
                         </div>
                     </div>
                 )}
 
-                {step === 3 && (
-                    <div className="space-y-10 animate-fade-in">
+                {/* ==================== STEP 2: ÜBER DICH ==================== */}
+                {step === 2 && (
+                    <form onSubmit={(e) => { e.preventDefault(); nextStep(); }} className="space-y-10 animate-fade-in">
                         <div className="space-y-4">
                             <h3 className="text-3xl font-black tracking-tight text-[#202324]">Über <span className="text-[#e8ac15]">dich.</span></h3>
                             <p className="text-lg text-[#202324]/50 font-medium">Lass uns wissen, wer du bist.</p>
                         </div>
 
+                        {/* Email */}
+                        <div className="space-y-3">
+                            <label className={labelClass}>Deine E-Mail Adresse</label>
+                            <input required name="email" value={formData.email} onChange={handleChange} type="email" placeholder="mail@beispiel.de" className={inputClass} />
+                        </div>
+
+                        {/* Privat / Gewerbe Toggle */}
+                        <div className="space-y-3">
+                            <label className={labelClass}>Persönliche Daten</label>
+                            <div className="flex rounded-xl overflow-hidden border-2 border-[#202324]/5 w-fit">
+                                <button type="button" onClick={() => setCustomerType("Private")} className={`px-8 py-3 font-bold text-sm transition-all ${customerType === "Private" ? 'bg-[#e8ac15] text-[#202324]' : 'bg-white text-[#202324]/40 hover:bg-slate-50'}`}>
+                                    Privat
+                                </button>
+                                <button type="button" onClick={() => setCustomerType("Business")} className={`px-8 py-3 font-bold text-sm transition-all ${customerType === "Business" ? 'bg-[#e8ac15] text-[#202324]' : 'bg-white text-[#202324]/40 hover:bg-slate-50'}`}>
+                                    Gewerbe
+                                </button>
+                            </div>
+                        </div>
+
+                        {customerType === "Business" && (
+                            <div className="space-y-3">
+                                <label className={labelClass}>Firmenname</label>
+                                <input required name="businessName" value={formData.businessName} onChange={handleChange} type="text" className={inputClass} />
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Anrede</label>
-                                <select 
-                                    name="gender" 
-                                    value={formData.gender} 
-                                    onChange={handleChange}
-                                    className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold"
-                                >
-                                    <option value="Male">Herr</option>
+                                <label className={labelClass}>Anrede</label>
+                                <select name="gender" value={formData.gender} onChange={handleChange} className={inputClass}>
                                     <option value="Female">Frau</option>
+                                    <option value="Male">Herr</option>
                                     <option value="Other">Divers</option>
                                 </select>
                             </div>
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">E-Mail Adresse</label>
-                                <input required name="email" value={formData.email} onChange={handleChange} type="email" placeholder="mail@beispiel.de" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
+                                <label className={labelClass}>Vorname</label>
+                                <input required name="firstName" value={formData.firstName} onChange={handleChange} type="text" className={inputClass} />
                             </div>
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Vorname</label>
-                                <input required name="firstName" value={formData.firstName} onChange={handleChange} type="text" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
+                                <label className={labelClass}>Nachname</label>
+                                <input required name="lastName" value={formData.lastName} onChange={handleChange} type="text" className={inputClass} />
                             </div>
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Nachname</label>
-                                <input required name="lastName" value={formData.lastName} onChange={handleChange} type="text" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
+                                <label className={labelClass}>Geburtsdatum</label>
+                                <input required name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} type="date" className={inputClass} />
                             </div>
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Geburtsdatum</label>
-                                <input required name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} type="date" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Passwort festlegen</label>
-                                <input required name="password" value={formData.password} onChange={handleChange} type="password" placeholder="********" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
+                                <label className={labelClass}>Telefonnummer</label>
+                                <input name="phone" value={formData.phone} onChange={handleChange} type="tel" placeholder="+49..." className={inputClass} />
                             </div>
                         </div>
-                    </div>
+
+                        {/* Delivery Address */}
+                        <div className="space-y-4 pt-4">
+                            <label className={labelClass}>Deine Lieferadresse</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-3">
+                                    <label className={labelClass}>Straße</label>
+                                    <input required name="street" value={formData.street} onChange={handleChange} type="text" className={inputClass} />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className={labelClass}>Hausnummer</label>
+                                    <input required name="houseNumber" value={formData.houseNumber} onChange={handleChange} type="text" className={inputClass} />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className={labelClass}>PLZ</label>
+                                    <input required name="postcode" value={formData.postcode} disabled type="text" className={`${inputClass} opacity-50 cursor-not-allowed`} />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className={labelClass}>Stadt</label>
+                                    <input required name="city" value={formData.city} onChange={handleChange} type="text" className={inputClass} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Password */}
+                        <div className="space-y-3">
+                            <label className={labelClass}>Dein Passwort</label>
+                            <input required name="password" value={formData.password} onChange={handleChange} type="password" placeholder="Mindestens 8 Zeichen, Groß-/Kleinbuchstaben, Zahl" className={inputClass} />
+                            <p className="text-xs text-[#202324]/30 font-medium">Mind. 8 Zeichen, eine Zahl, ein Groß- und ein Kleinbuchstabe.</p>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-4">
+                            <button type="button" onClick={() => setStep(1)} className="flex items-center gap-2 text-[#202324]/40 hover:text-[#202324] font-bold transition-colors group">
+                                <ArrowLeft size={20} className="transform group-hover:-translate-x-1 transition-transform" /> Zurück
+                            </button>
+                            <button type="submit" disabled={loading} className="flex items-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl group bg-[#202324] text-white hover:bg-[#e8ac15] hover:text-[#202324]">
+                                Weiter <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+                    </form>
                 )}
 
-                {step === 4 && (
-                    <div className="space-y-10 animate-fade-in">
+                {/* ==================== STEP 3: WECHSELDETAILS ==================== */}
+                {step === 3 && (
+                    <form onSubmit={(e) => { e.preventDefault(); nextStep(); }} className="space-y-10 animate-fade-in">
                         <div className="space-y-4">
-                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Lieferadresse.</h3>
-                            <p className="text-lg text-[#202324]/50 font-medium">Wo dürfen wir den Ökostrom liefern?</p>
+                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Wechsel<span className="text-[#e8ac15]">details.</span></h3>
+                            <p className="text-lg text-[#202324]/50 font-medium">Details zu deiner Stromversorgung und deinem Wechsel.</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="md:col-span-1 space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Straße</label>
-                                <input required name="street" value={formData.street} onChange={handleChange} type="text" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
-                            </div>
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Hausnummer</label>
-                                <input required name="houseNumber" value={formData.houseNumber} onChange={handleChange} type="text" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Stadt</label>
-                                <input required name="city" value={formData.city} onChange={handleChange} type="text" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Postleitzahl</label>
-                                <input required name="postcode" value={formData.postcode} disabled type="text" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold opacity-50 cursor-not-allowed" />
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {step === 5 && (
-                    <div className="space-y-10 animate-fade-in">
-                        <div className="space-y-4">
-                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Zähler & <span className="text-[#e8ac15]">Anschluss.</span></h3>
-                            <p className="text-lg text-[#202324]/50 font-medium">Details zu deiner Stromversorgung.</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Zählernummer</label>
-                                <input required name="meterNumber" value={formData.meterNumber} onChange={handleChange} type="text" placeholder="z.B. 12345678" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">MaLo-ID (Optional)</label>
-                                <input name="maLoIdentifier" value={formData.maLoIdentifier} onChange={handleChange} type="text" placeholder="33 значная ID" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Anlass</label>
-                                <select required name="contractReason" value={formData.contractReason} onChange={handleChange} className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold">
+                                <label className={labelClass}>Anlass</label>
+                                <select required name="contractReason" value={formData.contractReason} onChange={handleChange} className={inputClass}>
                                     <option value="ChangeOfSupplier">Anbieterwechsel</option>
-                                    <option value="NewDeliveryLocation">Umzug</option>
+                                    <option value="NewDeliveryLocation">Umzug / Neueinzug</option>
                                 </select>
                             </div>
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Wunschtermin</label>
-                                <input required name="desiredTransitionDate" value={formData.desiredTransitionDate} onChange={handleChange} type="date" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
+                                <label className={labelClass}>Zählernummer</label>
+                                <input required name="meterNumber" value={formData.meterNumber} onChange={handleChange} type="text" placeholder="z.B. 12345678" className={inputClass} />
+                            </div>
+                            <div className="space-y-3">
+                                <label className={labelClass}>MaLo-ID (Optional)</label>
+                                <input name="maLoIdentifier" value={formData.maLoIdentifier} onChange={handleChange} type="text" placeholder="Marktlokations-ID" className={inputClass} />
+                            </div>
+                            <div className="space-y-3">
+                                <label className={labelClass}>Gewünschter Wechseltermin</label>
+                                <input required name="desiredTransitionDate" value={formData.desiredTransitionDate} onChange={handleChange} type="date" className={inputClass} />
                             </div>
                             {formData.contractReason === "NewDeliveryLocation" && (
                                 <div className="space-y-3">
-                                    <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Einzugsdatum</label>
-                                    <input required name="moveInDate" value={formData.moveInDate} onChange={handleChange} type="date" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
+                                    <label className={labelClass}>Einzugsdatum</label>
+                                    <input required name="moveInDate" value={formData.moveInDate} onChange={handleChange} type="date" className={inputClass} />
                                 </div>
                             )}
                             {formData.contractReason === "ChangeOfSupplier" && (
                                 <div className="space-y-3">
-                                    <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Bisheriger Anbieter Code (BDEW)</label>
-                                    <input required name="previousSupplierCode" value={formData.previousSupplierCode} onChange={handleChange} type="text" placeholder="z.B. 99000..." className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
+                                    <label className={labelClass}>Bisheriger Anbieter Code (BDEW)</label>
+                                    <input required name="previousSupplierCode" value={formData.previousSupplierCode} onChange={handleChange} type="text" placeholder="z.B. 9979250000006" className={inputClass} />
                                 </div>
                             )}
-                            
-                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-                                <label className="flex items-center gap-3 p-4 bg-[#f2f2f2] rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
-                                    <input type="checkbox" checked={formData.hasElectricVehicle} onChange={(e) => setFormData(prev => ({...prev, hasElectricVehicle: e.target.checked}))} className="accent-[#e8ac15]" />
-                                    <span className="text-sm font-bold">E-Auto?</span>
-                                </label>
-                                <label className="flex items-center gap-3 p-4 bg-[#f2f2f2] rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
-                                    <input type="checkbox" checked={formData.hasSmartMeter} onChange={(e) => setFormData(prev => ({...prev, hasSmartMeter: e.target.checked}))} className="accent-[#e8ac15]" />
-                                    <span className="text-sm font-bold">Smart Meter?</span>
-                                </label>
-                                <label className="flex items-center gap-3 p-4 bg-[#f2f2f2] rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
-                                    <input type="checkbox" checked={formData.hasHeatPump} onChange={(e) => setFormData(prev => ({...prev, hasHeatPump: e.target.checked}))} className="accent-[#e8ac15]" />
-                                    <span className="text-sm font-bold">Wärmepumpe?</span>
-                                </label>
-                            </div>
                         </div>
-                    </div>
+
+                        <div className="flex items-center justify-between pt-4">
+                            <button type="button" onClick={prevStep} className="flex items-center gap-2 text-[#202324]/40 hover:text-[#202324] font-bold transition-colors group">
+                                <ArrowLeft size={20} className="transform group-hover:-translate-x-1 transition-transform" /> Zurück
+                            </button>
+                            <button type="submit" className="flex items-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl group bg-[#202324] text-white hover:bg-[#e8ac15] hover:text-[#202324]">
+                                Weiter <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+                    </form>
                 )}
 
-                {step === 6 && (
-                    <div className="space-y-10 animate-fade-in">
+                {/* ==================== STEP 4: ZAHLUNG ==================== */}
+                {step === 4 && (
+                    <form onSubmit={(e) => { e.preventDefault(); nextStep(); }} className="space-y-10 animate-fade-in">
                         <div className="space-y-4">
-                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Bezahlung.</h3>
+                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Zahlung.</h3>
                             <p className="text-lg text-[#202324]/50 font-medium">Wir ziehen die monatlichen Abschläge bequem via SEPA-Lastschrift ein.</p>
                         </div>
 
-                        <div className="space-y-8">
-                            <div className="bg-slate-50 border border-[#202324]/5 p-8 rounded-2xl flex items-center gap-6">
-                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-[#202324]">
-                                    <Shield size={24} />
-                                </div>
-                                <p className="text-sm text-[#202324]/60 font-medium leading-relaxed">
-                                    Ihre Bankdaten sind bei uns sicher. Der Einzug erfolgt erst nach Vertragsbestätigung und zum vereinbarten Datum.
-                                </p>
+                        <div className="bg-slate-50 border border-[#202324]/5 p-8 rounded-2xl flex items-center gap-6">
+                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-[#202324]">
+                                <Shield size={24} />
                             </div>
+                            <p className="text-sm text-[#202324]/60 font-medium leading-relaxed">
+                                Deine Bankdaten sind bei uns sicher. Der Einzug erfolgt erst nach Vertragsbestätigung und zum vereinbarten Datum.
+                            </p>
+                        </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="md:col-span-2 space-y-3">
-                                    <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">Kontoinhaber</label>
-                                    <input required name="accountHolder" value={formData.accountHolder} onChange={handleChange} type="text" placeholder="Max Mustermann" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
-                                </div>
-                                <div className="space-y-3">
-                                    <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">IBAN</label>
-                                    <input required name="iban" value={formData.iban} onChange={handleChange} type="text" placeholder="DE00 0000 0000 0000 0000 00" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
-                                </div>
-                                <div className="space-y-3">
-                                    <label className="text-xs font-bold text-[#202324]/60 uppercase tracking-widest">BIC</label>
-                                    <input required name="bic" value={formData.bic} onChange={handleChange} type="text" placeholder="XXXXXXXX" className="w-full bg-[#f2f2f2] border-none rounded-xl px-4 py-4 focus:ring-2 focus:ring-[#e8ac15] font-bold" />
-                                </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="md:col-span-2 space-y-3">
+                                <label className={labelClass}>Kontoinhaber</label>
+                                <input required name="accountHolder" value={formData.accountHolder} onChange={handleChange} type="text" placeholder="Max Mustermann" className={inputClass} />
+                            </div>
+                            <div className="space-y-3">
+                                <label className={labelClass}>IBAN</label>
+                                <input required name="iban" value={formData.iban} onChange={handleChange} type="text" placeholder="DE00 0000 0000 0000 0000 00" className={inputClass} />
+                            </div>
+                            <div className="space-y-3">
+                                <label className={labelClass}>BIC</label>
+                                <input required name="bic" value={formData.bic} onChange={handleChange} type="text" placeholder="DEUTDEFF" className={inputClass} />
                             </div>
                         </div>
-                    </div>
+
+                        <div className="flex items-center justify-between pt-4">
+                            <button type="button" onClick={prevStep} className="flex items-center gap-2 text-[#202324]/40 hover:text-[#202324] font-bold transition-colors group">
+                                <ArrowLeft size={20} className="transform group-hover:-translate-x-1 transition-transform" /> Zurück
+                            </button>
+                            <button type="submit" className="flex items-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl group bg-[#202324] text-white hover:bg-[#e8ac15] hover:text-[#202324]">
+                                Weiter <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+                    </form>
                 )}
 
-                {step === 7 && (
+                {/* ==================== STEP 5: ÜBERSICHT ==================== */}
+                {step === 5 && (
                     <div className="space-y-10 animate-fade-in">
                         <div className="space-y-4">
-                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Fast <span className="text-[#e8ac15]">geschafft.</span></h3>
+                            <h3 className="text-3xl font-black tracking-tight text-[#202324]">Übersicht.</h3>
                             <p className="text-lg text-[#202324]/50 font-medium">Prüfe deine Angaben und bestätige deine Bestellung.</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                             <div className="space-y-6">
                                 <div className="p-6 bg-slate-50 rounded-2xl space-y-4">
+                                    <h4 className="font-bold flex items-center gap-2 uppercase tracking-widest text-xs text-[#202324]/40"><Zap size={14} /> Tarif</h4>
+                                    <p className="font-bold text-[#202324]">{selectedTariff?.tariffName}</p>
+                                    <p className="text-sm font-medium text-[#202324]/60">
+                                        {priceQuote?.priceComponents.pricePerMonth.value.toFixed(2)} € / Monat
+                                    </p>
+                                </div>
+                                <div className="p-6 bg-slate-50 rounded-2xl space-y-4">
                                     <h4 className="font-bold flex items-center gap-2 uppercase tracking-widest text-xs text-[#202324]/40"><User size={14} /> Persönliche Daten</h4>
                                     <p className="font-bold text-[#202324]">{formData.firstName} {formData.lastName}</p>
                                     <p className="text-sm font-medium text-[#202324]/60">{formData.email}</p>
+                                    {formData.phone && <p className="text-sm font-medium text-[#202324]/60">{formData.phone}</p>}
                                 </div>
                                 <div className="p-6 bg-slate-50 rounded-2xl space-y-4">
                                     <h4 className="font-bold flex items-center gap-2 uppercase tracking-widest text-xs text-[#202324]/40"><Home size={14} /> Lieferadresse</h4>
@@ -561,11 +778,12 @@ export default function PerleFunnel() {
                                     <p className="text-sm font-medium text-[#202324]/60">{formData.postcode} {formData.city}</p>
                                 </div>
                             </div>
-                             <div className="space-y-6">
+                            <div className="space-y-6">
                                 <div className="p-6 bg-slate-50 rounded-2xl space-y-4">
-                                    <h4 className="font-bold flex items-center gap-2 uppercase tracking-widest text-xs text-[#202324]/40"><Activity size={14} /> Vertrag & Zähler</h4>
-                                    <p className="font-bold text-[#202324]">{selectedTariff?.tariffName}</p>
+                                    <h4 className="font-bold flex items-center gap-2 uppercase tracking-widest text-xs text-[#202324]/40"><Activity size={14} /> Wechseldetails</h4>
+                                    <p className="font-bold text-[#202324]">{formData.contractReason === 'ChangeOfSupplier' ? 'Anbieterwechsel' : 'Umzug'}</p>
                                     <p className="text-sm font-medium text-[#202324]/60">Zähler: {formData.meterNumber}</p>
+                                    <p className="text-sm font-medium text-[#202324]/60">Wechseltermin: {formData.desiredTransitionDate}</p>
                                 </div>
                                 <div className="p-6 bg-slate-50 rounded-2xl space-y-4">
                                     <h4 className="font-bold flex items-center gap-2 uppercase tracking-widest text-xs text-[#202324]/40"><CreditCard size={14} /> Zahlung</h4>
@@ -577,16 +795,32 @@ export default function PerleFunnel() {
 
                         <div className="space-y-4 pt-4">
                             <div className="flex gap-4">
-                                <input type="checkbox" required className="mt-1 accent-[#e8ac15]" defaultChecked />
-                                <label className="text-sm font-medium text-[#202324]/60 leading-relaxed">
-                                    Ich habe die AGB, die Widerrufsbelehrung sowie die Datenschutzbestimmungen gelesen und akzeptiere diese.
+                                <input type="checkbox" required className="mt-1 accent-[#e8ac15]" id="agb" />
+                                <label htmlFor="agb" className="text-sm font-medium text-[#202324]/60 leading-relaxed">
+                                    Ich habe die <strong>AGB</strong>, die <strong>Widerrufsbelehrung</strong> sowie die <strong>Datenschutzbestimmungen</strong> gelesen und akzeptiere diese.
                                 </label>
                             </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-4">
+                            <button type="button" onClick={prevStep} className="flex items-center gap-2 text-[#202324]/40 hover:text-[#202324] font-bold transition-colors group">
+                                <ArrowLeft size={20} className="transform group-hover:-translate-x-1 transition-transform" /> Zurück
+                            </button>
+                            <button
+                                type="button"
+                                onClick={submitOrder}
+                                disabled={loading}
+                                className={`flex items-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl group ${loading ? 'bg-[#202324]/10 cursor-not-allowed text-[#202324]/20' : 'bg-[#e8ac15] text-[#202324] hover:bg-[#202324] hover:text-white'}`}
+                            >
+                                {loading ? 'Verarbeite...' : 'Jetzt verbindlich abschließen'}
+                                {!loading && <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />}
+                            </button>
                         </div>
                     </div>
                 )}
 
-                {step === 8 && (
+                {/* ==================== STEP 6: SUCCESS ==================== */}
+                {step === 6 && (
                     <div className="text-center py-20 space-y-10 animate-fade-in">
                         <div className="w-24 h-24 bg-[#e8ac15] rounded-full mx-auto flex items-center justify-center text-white shadow-[0_20px_40px_rgba(232,172,21,0.3)]">
                             <Check size={48} strokeWidth={3} />
@@ -606,34 +840,7 @@ export default function PerleFunnel() {
                         </div>
                     </div>
                 )}
-
-
-                {/* Navigation Buttons */}
-                {step < 8 && (
-                    <div className="flex items-center justify-between mt-12 pt-12 border-t border-[#202324]/5">
-                        {step > 1 ? (
-                            <button 
-                                type="button"
-                                onClick={prevStep}
-                                disabled={loading}
-                                className="flex items-center gap-2 text-[#202324]/40 hover:text-[#202324] font-bold transition-colors group"
-                            >
-                                <ArrowLeft size={20} className="transform group-hover:-translate-x-1 transition-transform" /> Zurück
-                            </button>
-                        ) : <div />}
-
-                        <button 
-                            type="submit"
-                            title={step === 7 ? "Jetzt verbindlich abschließen" : "Weiter zum nächsten Schritt"}
-                            disabled={loading}
-                            className={`flex items-center gap-3 px-10 py-5 rounded-full font-bold text-lg transition-all shadow-xl group ${loading ? 'bg-[#202324]/10 cursor-not-allowed text-[#202324]/20' : 'bg-[#202324] text-white hover:bg-[#e8ac15] hover:text-[#202324]'}`}
-                        >
-                            {loading ? 'Verarbeite...' : (step === 7 ? 'Jetzt verbindlich abschließen' : 'Weiter zum nächsten Schritt')}
-                            {!loading && <ArrowRight size={20} className="transform group-hover:translate-x-1 transition-transform" />}
-                        </button>
-                    </div>
-                )}
-            </form>
+            </div>
             
             <p className="text-center text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#202324]/20 mt-12 pb-20">
                 Sicherer Datentransfer mit 256-Bit SSL-Verschlüsselung
