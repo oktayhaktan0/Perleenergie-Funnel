@@ -107,15 +107,15 @@ export default function PerleFunnel() {
         setLoading(true);
         try {
             const actualTariff = tariffToUse || selectedTariff || tariffs[0];
-            setSelectedTariff(actualTariff);
-
+            setSelectedTariff(actualTariff); // Trigger state update
+            
             const res = await fetch('/api/rabot/calculate-price', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tariffKey: actualTariff.tariffKey,
-                    postCode: formData.postcode,
-                    yearlyConsumption: parseInt(formData.usage),
+                    zipCode: formData.postcode, 
+                    yearlyConsumptionKwh: parseInt(formData.usage),
                     hasSmartMeter: formData.hasSmartMeter,
                     hasElectricVehicle: formData.hasElectricVehicle
                 })
@@ -123,7 +123,7 @@ export default function PerleFunnel() {
             const data = await res.json();
             if (data.isSuccess) {
                 setPriceQuote(data.data);
-                setStep(2);
+                if (step === 1) setStep(2); // Only change step if we are on Step 1
             } else {
                 toast.error("Preisberechnung fehlgeschlagen.");
             }
@@ -344,9 +344,11 @@ export default function PerleFunnel() {
                                <button 
                                 type="button"
                                 key={t.tariffKey}
-                                onClick={() => {
-                                    calculatePrice(t);
-                                }}
+                                 onClick={(e) => {
+                                     e.preventDefault();
+                                     e.stopPropagation();
+                                     calculatePrice(t);
+                                 }}
                                 className={`p-6 rounded-2xl border-2 transition-all flex items-center justify-between group ${selectedTariff?.tariffKey === t.tariffKey ? 'border-[#e8ac15] bg-[#e8ac15]/5' : 'border-[#202324]/5 hover:border-[#202324]/20'}`}
                                >
                                    <div className="text-left">
