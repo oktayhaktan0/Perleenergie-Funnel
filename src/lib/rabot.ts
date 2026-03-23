@@ -149,6 +149,14 @@ export async function calculateRabotPrice(data: {
         })
     });
 
+    console.log(`[Rabot Request] URL: ${RABOT_ACTIVE_API_URL}/tariffs/${tariffKey}/calculation`);
+    console.log(`[Rabot Request] Body:`, JSON.stringify({
+        ZipCode: data.postCode,
+        yearlyConsumptionKwh: data.yearlyConsumption,
+        hasSmartMeter: data.hasSmartMeter || false,
+        hasElectricVehicle: data.hasElectricVehicle || false
+    }));
+
     if (!res.ok) {
         let errorDetail = "";
         try {
