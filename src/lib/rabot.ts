@@ -169,6 +169,7 @@ export async function calculateRabotPrice(data: any, token: string) {
 }
 
 
+
 export async function createRabotOrder(orderData: any, token: string) {
     const res = await fetch(`${RABOT_ACTIVE_API_URL}/orders`, {
         method: 'POST',
@@ -185,5 +186,51 @@ export async function createRabotOrder(orderData: any, token: string) {
         throw new Error(errorData.message || `Failed to create order: ${res.statusText}`);
     }
 
+    return res.json();
+}
+
+/**
+ * EPEX Spot Prices (Day-Ahead)
+ */
+export async function getRabotEpexPrices(token: string) {
+    const res = await fetch(`${RABOT_ACTIVE_API_URL}/epex-spot-prices/day-ahead`, {
+        cache: 'no-store',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    if (!res.ok) throw new Error("Failed to fetch EPEX prices");
+    return res.json();
+}
+
+/**
+ * List Orders (for tracking/status)
+ */
+export async function listRabotOrders(token: string) {
+    const res = await fetch(`${RABOT_ACTIVE_API_URL}/orders`, {
+        cache: 'no-store',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    if (!res.ok) throw new Error("Failed to list orders");
+    return res.json();
+}
+
+/**
+ * GEODATA HELPERS (Using OpenPLZ API - Free & Public for Germany)
+ * Providing the 'Street' and 'City' autocomplete requested by user.
+ */
+export async function getGermanLocalities(postcode: string) {
+    const res = await fetch(`https://openplzapi.org/de/Localities?postalCode=${postcode}`);
+    if (!res.ok) return [];
+    return res.json();
+}
+
+export async function getGermanStreets(postcode: string) {
+    const res = await fetch(`https://openplzapi.org/de/Streets?postalCode=${postcode}&pageSize=200`);
+    if (!res.ok) return [];
     return res.json();
 }

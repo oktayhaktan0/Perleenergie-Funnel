@@ -41,6 +41,11 @@ export default function PerleFunnel() {
     const [priceQuote, setPriceQuote] = useState<PriceQuote | null>(null);
     const [allPriceQuotes, setAllPriceQuotes] = useState<{[key: string]: PriceQuote}>({});
     const [showTariffDetail, setShowTariffDetail] = useState(false);
+    
+    // Geodata state for automatic address selection
+    const [localities, setLocalities] = useState<any[]>([]);
+    const [streets, setStreets] = useState<any[]>([]);
+    const [geoLoading, setGeoLoading] = useState(false);
     const [householdSize, setHouseholdSize] = useState(2);
     const [customerType, setCustomerType] = useState<"Private" | "Business">("Private");
     const [showPersonalFields, setShowPersonalFields] = useState(false);
@@ -109,6 +114,36 @@ export default function PerleFunnel() {
             setFormData(prev => ({ ...prev, usage: match.kwh.toString() }));
         }
     }, [householdSize]);
+
+    // Load geodata when step 2 (personal info) starts
+    useEffect(() => {
+        if (showPersonalFields && formData.postcode && formData.postcode.length === 5) {
+            const fetchGeo = async () => {
+                setGeoLoading(true);
+                try {
+                    // Fetch Localities (Cities)
+                    const locRes = await fetch(`/api/geo?postcode=${formData.postcode}&type=localities`);
+                    const locData = await locRes.json();
+                    setLocalities(locData);
+                    
+                    // Auto-fill city if only one
+                    if (locData.length === 1 && !formData.city) {
+                        setFormData(prev => ({ ...prev, city: locData[0].name }));
+                    }
+
+                    // Fetch Streets
+                    const strRes = await fetch(`/api/geo?postcode=${formData.postcode}&type=streets`);
+                    const strData = await strRes.json();
+                    setStreets(strData);
+                } catch (err) {
+                    console.error("Geo fetch failed:", err);
+                } finally {
+                    setGeoLoading(false);
+                }
+            };
+            fetchGeo();
+        }
+    }, [showPersonalFields, formData.postcode]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -733,11 +768,20 @@ export default function PerleFunnel() {
                                             <div className="md:col-span-2 grid grid-cols-3 gap-6">
                                                 <div className="col-span-2 space-y-3">
                                                     <label className={labelClass}>Straße</label>
-                                                    <input required name="street" value={formData.street} onChange={handleChange} type="text" className={inputClass} />
+                                                    {streets.length > 0 ? (
+                                                        <select required name="street" value={formData.street} onChange={handleChange} className={inputClass}>
+                                                            <option value="">Straße wählen...</option>
+                                                            {streets.map((s, idx) => (
+                                                                <option key={`${s.name}-${idx}`} value={s.name}>{s.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : (
+                                                        <input required name="street" value={formData.street} onChange={handleChange} type="text" placeholder="z.B. Musterstr." className={inputClass} />
+                                                    )}
                                                 </div>
                                                 <div className="space-y-3">
                                                     <label className={labelClass}>Hausnr.</label>
-                                                    <input required name="houseNumber" value={formData.houseNumber} onChange={handleChange} type="text" className={inputClass} />
+                                                    <input required name="houseNumber" value={formData.houseNumber} onChange={handleChange} type="text" placeholder="1" className={inputClass} />
                                                 </div>
                                             </div>
                                             <div className="space-y-3">
@@ -746,7 +790,16 @@ export default function PerleFunnel() {
                                             </div>
                                             <div className="space-y-3">
                                                 <label className={labelClass}>Stadt</label>
-                                                <input required name="city" value={formData.city} onChange={handleChange} type="text" className={inputClass} />
+                                                {localities.length > 1 ? (
+                                                    <select required name="city" value={formData.city} onChange={handleChange} className={inputClass}>
+                                                        <option value="">Ort wählen...</option>
+                                                        {localities.map((l, idx) => (
+                                                            <option key={`${l.name}-${idx}`} value={l.name}>{l.name}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input required name="city" value={formData.city} onChange={handleChange} type="text" className={inputClass} />
+                                                )}
                                             </div>
                                         </div>
                                     </div>
