@@ -103,18 +103,17 @@ export default function PerleFunnel() {
 
     const prevStep = () => setStep(prev => prev - 1);
 
-    const calculatePrice = async () => {
+    const calculatePrice = async (tariffToUse?: TariffSelection) => {
         setLoading(true);
         try {
-            // First select default tariff if none selected
-            const tariffToUse = selectedTariff || tariffs[0];
-            setSelectedTariff(tariffToUse);
+            const actualTariff = tariffToUse || selectedTariff || tariffs[0];
+            setSelectedTariff(actualTariff);
 
             const res = await fetch('/api/rabot/calculate-price', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tariffKey: tariffToUse.tariffKey,
+                    tariffKey: actualTariff.tariffKey,
                     postCode: formData.postcode,
                     yearlyConsumption: parseInt(formData.usage),
                     hasSmartMeter: formData.hasSmartMeter,
@@ -345,8 +344,7 @@ export default function PerleFunnel() {
                                <button 
                                 key={t.tariffKey}
                                 onClick={() => {
-                                    setSelectedTariff(t);
-                                    calculatePrice();
+                                    calculatePrice(t);
                                 }}
                                 className={`p-6 rounded-2xl border-2 transition-all flex items-center justify-between group ${selectedTariff?.tariffKey === t.tariffKey ? 'border-[#e8ac15] bg-[#e8ac15]/5' : 'border-[#202324]/5 hover:border-[#202324]/20'}`}
                                >
