@@ -76,7 +76,7 @@ export default function Footer() {
                             © {currentYear} Perle Energie. Alle Rechte vorbehalten.
                         </p>
                         {process.env.NEXT_PUBLIC_COMMIT_HASH && (
-                            <span className="text-white/10 font-mono text-[9px] uppercase tracking-tighter bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                            <span className="text-white/40 font-mono text-[9px] uppercase tracking-tighter bg-white/10 px-2.5 py-1 rounded border border-white/10">
                                 Build: {process.env.NEXT_PUBLIC_COMMIT_HASH}
                             </span>
                         )}
