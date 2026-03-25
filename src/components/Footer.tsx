@@ -71,9 +71,16 @@ export default function Footer() {
 
                 {/* Bottom Bar */}
                 <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <p className="text-white/20 font-bold text-[10px] uppercase tracking-widest">
-                        © {currentYear} Perle Energie. Alle Rechte vorbehalten.
-                    </p>
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                        <p className="text-white/20 font-bold text-[10px] uppercase tracking-widest">
+                            © {currentYear} Perle Energie. Alle Rechte vorbehalten.
+                        </p>
+                        {process.env.NEXT_PUBLIC_COMMIT_HASH && (
+                            <span className="text-white/10 font-mono text-[9px] uppercase tracking-tighter bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                                Build: {process.env.NEXT_PUBLIC_COMMIT_HASH}
+                            </span>
+                        )}
+                    </div>
                     <div className="flex gap-8">
                         <Link href="/agb" className="text-white/20 hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest">AGB</Link>
                         <Link href="/widerruf" className="text-white/20 hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest">Widerruf</Link>
