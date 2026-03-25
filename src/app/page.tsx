@@ -95,9 +95,11 @@ export default function Home() {
               Schluss mit teurem Grundversorger-Strom.<br />
               Entdecke die <span className="text-white">faire Energie-Revolution.</span>
             </h2>
-            <p className="text-lg md:text-xl text-[#202324]/70 font-medium max-w-3xl leading-relaxed">
-              Perle Energie liefert dir Strom zu fairen Konditionen. <br className="hidden md:block" />
-              Keine Mindestlaufzeit, kein Papierkram – einfach nur sauberer Ökostrom.
+            <p className="text-lg md:text-xl text-[#202324]/70 font-medium max-w-4xl leading-relaxed">
+              Perle Energie liefert dir Strom zu fairen Konditionen, direkt aus nachhaltigen Quellen. 
+              Wir verzichten auf teure Verwaltung und geben die Ersparnis an dich weiter.
+              Keine Mindestlaufzeit, kein unnötiger Papierkram – einfach nur sauberer Ökostrom für dein Zuhause, verwaltet über eine intuitive App.
+              Erlebe die Leichtigkeit der modernen Energieversorgung mit maximaler Flexibilität und voller Transparenz bei jedem verbrauchten Kilowatt.
             </p>
           </div>
         </div>
@@ -250,7 +252,7 @@ export default function Home() {
               <div className="hidden sm:flex absolute right-[-2rem] md:right-[-4rem] top-0 bottom-0 w-1/2 items-center justify-end pointer-events-none opacity-100 ">
                 <Image
                   src="/assets/p-logo.png"
-                  alt=""
+                  alt="Perle Energie Logo Dekoration"
                   width={200}
                   height={200}
                   className="object-contain object-right"
@@ -347,7 +349,7 @@ export default function Home() {
             <div className="relative z-10 w-[240px] md:w-[350px] transition-transform hover:scale-105 duration-1000 group">
               <Image
                 src="/assets/p-logo.png"
-                alt=""
+                alt="Perle Energie Radar Grafik"
                 width={350}
                 height={350}
                 className="hidden md:block w-full h-full object-contain drop-shadow-[0_0_80px_rgba(232,172,21,0.2)]"
@@ -366,7 +368,7 @@ export default function Home() {
       <section id="faq" className="py-16 md:py-40 px-6 md:px-12 bg-white relative overflow-hidden">
         {/* Background Decorative element */}
         <div className="absolute right-[-10%] top-[20%] w-[600px] h-[600px] opacity-[0.03] pointer-events-none transform rotate-45">
-          <Image src="/assets/p-logo.png" alt="" width={600} height={600} className="w-full h-full object-contain" />
+          <Image src="/assets/p-logo.png" alt="Dekoratives Perle Logo Hintergrund" width={600} height={600} className="w-full h-full object-contain" />
         </div>
 
         <div className="max-w-[1440px] mx-auto relative z-10">

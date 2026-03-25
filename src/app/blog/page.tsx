@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 
 export const metadata = {
     title: 'Blog',
-    description: 'Aktuelle Nachrichten, Tipps zum Energiesparen und Einblicke in die Welt der erneuerbaren Energien.',
+    description: 'Entdecke aktuelle Nachrichten, wertvolle Tipps zum Energiesparen und spannende Einblicke in die Welt der erneuerbaren Energien in unserem Perle Energie Blog.',
     alternates: {
         canonical: '/blog',
     }

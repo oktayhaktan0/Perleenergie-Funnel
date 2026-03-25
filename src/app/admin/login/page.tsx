@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
 
             {/* Ambient Background Logo */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-[0.02] pointer-events-none">
-                <img src="/assets/p-logo.png" alt="" className="w-full h-full object-contain" />
+                <img src="/assets/p-logo.png" alt="Perle Energie Hintergrund Logo" className="w-full h-full object-contain" />
             </div>
 
             <div className="w-full max-w-md bg-white rounded-[2.5rem] p-10 md:p-14 shadow-[0_20px_60px_rgba(0,0,0,0.06)] relative z-10 border border-[#202324]/5">

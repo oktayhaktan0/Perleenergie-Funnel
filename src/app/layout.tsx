@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     default: "Perle Energie | 100% digital. Keine versteckten Kosten.",
     template: "%s | Perle Energie"
   },
-  description: "Klarer Stromtarif mit transparenten Preisen. 100% digital und flexibel kündbar. Jetzt Tarif berechnen.",
+  description: "Perle Energie bietet 100% zertifizierten Ökostrom mit transparenten Preisen. 100% digital, flexibel kündbar und ohne versteckte Kosten. Jetzt Tarif in Sekunden berechnen und wechseln.",
   keywords: ["Ökostrom", "Stromtarif", "Energie", "Hamburg", "Perle Energie", "Nachhaltigkeit"],
   authors: [{ name: "Perle Energie" }],
   creator: "Perle Energie",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     url: 'https://perleenergie.de',
     siteName: 'Perle Energie',
     title: 'Perle Energie | 100% digital. Keine versteckten Kosten.',
-    description: 'Klarer Stromtarif mit transparenten Preisen. 100% digital und flexibel kündbar.',
+    description: 'Perle Energie bietet 100% zertifizierten Ökostrom mit transparenten Preisen. 100% digital, flexibel kündbar und ohne versteckte Kosten. Jetzt Tarif in Sekunden berechnen und wechseln.',
     images: [
       {
         url: '/assets/p-mark-yellow.png', // Logo veya ana görsel
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Perle Energie | 100% digital. Keine versteckten Kosten.',
-    description: 'Klarer Stromtarif mit transparenten Preisen. 100% digital und flexibel kündbar.',
+    description: 'Perle Energie bietet 100% zertifizierten Ökostrom mit transparenten Preisen. 100% digital, flexibel kündbar und ohne versteckte Kosten. Jetzt Tarif in Sekunden berechnen und wechseln.',
     images: ['/assets/p-mark-yellow.png'],
   },
 };
