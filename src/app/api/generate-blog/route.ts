@@ -57,27 +57,32 @@ export async function GET(request: Request) {
         ];
 
         const randomSlugs = slugs.sort(() => 0.5 - Math.random()).slice(0, 2);
-        const prompt = `
-Oluşturacağın içeriği doğrudan bir JSON objesi olarak HTML formatında ver.
-Anahtar Kelime: "${keyword}"
-Makale kuralları:
-1. Almanca, akıcı ve kurumsal-samimi dil.
-2. Benzersiz içerik, klasik şablon yok.
-3. HTML olarak:
-   - <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote>, <table> kullan.
-4. Makale içinde "Perle Energie" sadece 1-2 kez doğal şekilde geçsin.
-5. Makale içinde aşağıdaki 2 linki rastgele bağla:
+        const prompt = ` Sie sind ein SEO-Experte für den deutschen Energiemarkt. Erstellen Sie einen hochwertigen Blogartikel basierend auf folgendem SEO-Strategie-Set: SEO-STRATEGIE-SET: "${keyword}"
+REGELN FÜR DEN INHALT:
+1. SPRACHE: Fließendes, Experten-Deutsch. Einnehmend, motivierend und vertrauenswürdig (Corporate-Friendly).
+2. STRUKTUR: 
+   - Der Haupttitel (<h1>) muss packend sein und das Hauptthema enthalten.
+   - Verwenden Sie zwingend <h2>, <h3> und <p> Tags. Benutzen Sie auch <strong> für wichtige Begriffe.
+   - Fügen Sie eine <ul> Liste mit praktischen Tipps ein.
+   - Der Artikel sollte 600-800 Wörter umfassen.
+3. SEO-OPTIMIERUNG (WICHTIG):
+   - KEYWORD-FOKUS: Integrieren Sie die im Strategie-Set genannten Begriffe natürlich.
+   - Das Haupt-Keyword (Core) muss im ersten <h2> und in der Einleitung vorkommen.
+   - Die Long-Tail Keywords müssen als Unterthemen (<h3>) behandelt werden.
+   - Das High-Conversion Keyword muss am Ende des Artikels in Verbindung mit einem Call-to-Action (CTA) stehen.
+4. BRANDING: Erwähnen Sie "Perle Energie" 2-3 Mal natürlich als Lösung für Energiefragen.
+5. CALL-TO-ACTION: Beenden Sie den Artikel mit einem starken CTA, der den Leser dazu animiert, seinen Tarif bei Perle Energie zu berechnen.
+6. INTERNE VERLINKUNG: Bauen Sie diese 2 Links natürlich im Fließtext ein:
    - https://perleenergie.de/blog/${randomSlugs[0]}
    - https://perleenergie.de/blog/${randomSlugs[1]}
-6. Görsel arama için 2-3 kelimelik İngilizce spesifik terim ver "image_search_query".
-7. 600-800 kelime arası uzunluk.
-Cevap JSON formatında olmalı:
+7. BILD-SUCHE: Geben Sie eine englische Suchanfrage für Unsplash an ("image_search_query"), die zum Thema passt (z.B. "solar panels house").
+AUSGABEFORMAT: Antworten Sie NUR als JSON-Objekt ohne Markdown-Formatierung:
 {
-  "title": "...",
-  "excerpt": "...",
-  "category": "...",
-  "image_search_query": "...",
-  "content": "HTML içeriği burada"
+  "title": "Blog-Titel",
+  "excerpt": "Kurze Zusammenfassung für die Vorschau",
+  "category": "Energie sparen / Ratgeber",
+  "image_search_query": "specific english terms",
+  "content": "HTMLInhaltHier"
 }
 `;
 
