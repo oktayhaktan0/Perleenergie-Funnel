@@ -21,7 +21,8 @@ export default function Header() {
 
     const isHome = pathname === "/";
 
-    if (pathname === "/portal") return null;
+    const isPortal = pathname === "/portal" || pathname === "/kundenportal";
+    if (isPortal) return null;
 
     return (
         <header

@@ -9,7 +9,8 @@ export default function Footer() {
     const pathname = usePathname();
     const currentYear = new Date().getFullYear();
 
-    if (pathname === "/portal") return null;
+    const isPortal = pathname === "/portal" || pathname === "/kundenportal";
+    if (isPortal) return null;
 
     return (
         <footer className="bg-[#111111] text-white pt-24 md:pb-12 pb-[calc(6rem+env(safe-area-inset-bottom))] border-t border-white/5">

@@ -352,6 +352,25 @@ export default function PerleFunnel() {
             });
             const data = await res.json();
             if (data.isSuccess) {
+                // Register customer locally for kundenportal login
+                try {
+                    await fetch('/api/auth/customer-register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: formData.email,
+                            password: formData.password,
+                            firstName: formData.firstName,
+                            lastName: formData.lastName,
+                            phone: formData.phone,
+                            orderExternalId: orderPayload.contract.externalId
+                        })
+                    });
+                } catch (regErr) {
+                    console.error("Local registration failed:", regErr);
+                    // We don't block the UI if local registration fails, since the order was successful on Rabot.
+                }
+
                 setStep(6); // Success step
                 toast.success("Bestellung erfolgreich übermittelt!");
             } else {
