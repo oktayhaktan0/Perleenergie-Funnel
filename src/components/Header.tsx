@@ -21,6 +21,8 @@ export default function Header() {
 
     const isHome = pathname === "/";
 
+    if (pathname === "/portal") return null;
+
     return (
         <header
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-4 md:py-6 px-4 md:px-12`}

@@ -1,6 +1,11 @@
+"use client";
 import { Phone } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function MobileCallButton() {
+    const pathname = usePathname();
+    if (pathname === "/portal") return null;
+
     return (
         <div className="md:hidden">
             <a 

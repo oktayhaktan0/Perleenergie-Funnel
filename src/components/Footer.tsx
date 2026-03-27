@@ -1,9 +1,15 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Mail, Phone } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function Footer() {
+    const pathname = usePathname();
     const currentYear = new Date().getFullYear();
+
+    if (pathname === "/portal") return null;
 
     return (
         <footer className="bg-[#111111] text-white pt-24 md:pb-12 pb-[calc(6rem+env(safe-area-inset-bottom))] border-t border-white/5">
