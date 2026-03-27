@@ -57,7 +57,7 @@ export async function getAccessToken(): Promise<string> {
                     "Authorization": "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64"),
                     "Content-Type": "application/x-www-form-urlencoded" 
                 },
-                body: new URLSearchParams({ grant_type: "client_credentials", scope: "api:partner" }).toString()
+                body: new URLSearchParams({ grant_type: "client_credentials", scope: "api:partner create:orders role:finance-reporting role:meter-data role:customer-support" }).toString()
             },
             {
                 name: "Body+Scope",
@@ -68,7 +68,7 @@ export async function getAccessToken(): Promise<string> {
                     grant_type: "client_credentials", 
                     client_id: clientId, 
                     client_secret: clientSecret, 
-                    scope: "api:partner" 
+                    scope: "api:partner create:orders role:finance-reporting role:meter-data role:customer-support" 
                 }).toString()
             },
             {

@@ -285,6 +285,7 @@ export default function PerleFunnel() {
         try {
             const orderPayload = {
                 tariffKey: selectedTariff?.tariffKey,
+                offerDate: new Date().toISOString().split('T')[0], // Mandatory: Today's date
                 userAccount: {
                     emailAddress: formData.email,
                     phoneNumber: formData.phone,
